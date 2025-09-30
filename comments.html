@@ -1,214 +1,507 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <title>پنل مدیریت نظرات</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Vazir font -->
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css" rel="stylesheet" />
+
   <style>
+    :root{
+      --c-bg1:#f0fdfa; --c-bg2:#e0f2fe;
+      --c-teal:#0d9488; --c-blue:#0ea5e9;
+      --c-muted:#6b7280; --c-green:#10b981; --c-orange:#f59e0b; --c-red:#ef4444;
+    }
+    *{box-sizing:border-box}
     body {
-      font-family: "Vazir", Tahoma, sans-serif;
-      direction: rtl;
-      background: linear-gradient(135deg, #f0fdfa, #e0f2fe);
+      font-family: Vazir, Tahoma, sans-serif;
+      background: linear-gradient(135deg, var(--c-bg1), var(--c-bg2));
       margin: 0;
       padding: 20px;
       color: #333;
     }
-    h1 {
+    h1, h2 {
       text-align: center;
-      color: #0d9488;
-      margin-bottom: 10px;
+      color: var(--c-teal);
+      margin: 0 0 12px 0;
     }
-    h2 {
-      margin-top: 40px;
-      color: #374151;
-      border-right: 5px solid #0ea5e9;
-      padding-right: 8px;
+    h2 span { color:#0c4a6e; font-weight: normal; }
+    .container { max-width: 1150px; margin: 0 auto; }
+    .card {
+      background:#fff; border-radius:16px; padding:24px;
+      box-shadow: 0 12px 30px rgba(13,148,136,0.10);
+      transition: box-shadow .3s ease, transform .3s ease;
     }
+    .card:hover { box-shadow: 0 18px 40px rgba(14,165,233,0.18); transform: translateY(-2px); }
+
+    .hidden { display: none; }
+
+    .row { display:flex; align-items:center; gap:10px; justify-content:center; flex-wrap:wrap; }
+    .row-left { display:flex; align-items:center; gap:10px; justify-content:flex-start; flex-wrap:wrap; }
+
+    input[type="password"] {
+      width: 280px;
+      padding: 12px 16px;
+      font-size: 16px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      outline: none;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    input[type="password"]:focus {
+      border-color: var(--c-blue);
+      box-shadow: 0 0 0 4px rgba(14,165,233,0.15);
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: transform .25s ease, box-shadow .25s ease, opacity .25s ease, background .25s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+    .btn-primary { background: var(--c-blue); color:#fff; }
+    .logout-btn { background: #dc2626; color:#fff; }
+
+    .approve { background: var(--c-green); color:#fff; }
+    .reject  { background: var(--c-orange); color:#fff; }
+    .delete  { background: var(--c-red); color:#fff; }
+
+    .meta { color: var(--c-muted); font-size: 14px; text-align:center; margin-top:6px; }
+    .badge {
+      display:inline-block;
+      background:#e0f2fe;
+      color:#0c4a6e;
+      padding:6px 12px;
+      border-radius:999px;
+      font-size:12px;
+      margin-top:8px;
+    }
+    .err { color:#b91c1c; text-align:center; margin-top:10px; min-height:24px; }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 12px;
       background: #fff;
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 4px 16px rgba(0,0,0,.08);
+      box-shadow: 0 6px 18px rgba(0,0,0,.08);
+      transition: box-shadow .3s ease;
     }
-    th, td {
+    table:hover { box-shadow: 0 10px 26px rgba(0,0,0,.12); }
+    thead th {
+      background: var(--c-blue);
+      color: #fff;
+      padding: 12px;
+      font-weight: 800;
+      letter-spacing: .3px;
+    }
+    tbody td {
       padding: 12px;
       border-bottom: 1px solid #e5e7eb;
       text-align: center;
+      vertical-align: top;
     }
-    th {
+    tbody tr { animation: fadeIn .35s ease; }
+    tbody tr:hover td { background: #f9fafb; }
+    td.comment { max-width:460px; text-align:right; line-height:1.8; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .section { margin-top: 26px; }
+
+    /* Notification (toast) */
+    #toast {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      right: 16px;
+      margin: auto;
+      max-width: 420px;
       background: #0ea5e9;
       color: #fff;
-      font-weight: bold;
+      padding: 12px 16px;
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.18);
+      display: none;
+      z-index: 9999;
+      text-align: center;
+      font-weight: 700;
     }
-    tr:hover td {
-      background: #f9fafb;
-    }
-    button {
-      padding: 6px 12px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.2s ease;
-    }
-    button:hover { opacity: 0.85; transform: scale(1.05); }
-    .approve { background:#22c55e; color:#fff }
-    .reject { background:#f59e0b; color:#fff }
-    .delete { background:#ef4444; color:#fff }
-    .muted { color:#6b7280 }
-    .error {
-      background:#fee2e2;
-      color:#b91c1c;
-      padding:10px;
-      border-radius:8px;
-      margin:12px 0;
-      display:none;
-    }
-    .hint {
-      background:#e0f2fe;
-      color:#0c4a6e;
-      padding:10px;
-      border-radius:8px;
-      margin:12px 0;
-      font-size: 14px;
+
+    .controls { margin: 10px 0; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+    .controls .left { display:flex; gap:8px; align-items:center; }
+    .controls .right { display:flex; gap:8px; align-items:center; }
+
+    .checkbox { transform: scale(1.2); cursor: pointer; }
+
+    @media (max-width: 768px){
+      input[type="password"] { width: 100%; }
+      .row { flex-direction:column; }
+      tbody td { font-size: 14px; }
+      button { width: auto; }
+      .controls { flex-direction:column; align-items:flex-start; }
     }
   </style>
 </head>
 <body>
-  <h1>📋 پنل مدیریت نظرات</h1>
+  <div id="toast"></div>
 
-  <div id="err" class="error"></div>
-  <div class="hint">
-    اگر این بخش‌ها خالی‌اند، احتمالاً RLS جلوی خواندن/آپدیت را گرفته. پایین صفحه راه‌حل SQL را گذاشتم.
+  <div class="container">
+
+    <!-- Login -->
+    <div id="login-box" class="card">
+      <h1>🔐 ورود به پنل مدیریت</h1>
+      <div class="row" style="margin-top:12px;">
+        <input type="password" id="pass" placeholder="رمز عبور را وارد کنید">
+        <button class="btn-primary" onclick="login()">ورود</button>
+      </div>
+      <div id="err" class="err"></div>
+      <div class="meta">رمز پیش‌فرض: dradmin123 — پس از ورود، لیست نظرات و نمودار وضعیت نمایش داده می‌شود.</div>
+      <div class="badge">طراحی مدرن • افکت‌های روان • واکنش‌گرا</div>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="panel" class="hidden">
+
+      <!-- Header + Chart -->
+      <div class="card" style="margin-bottom:16px;">
+        <h1>📋 پنل مدیریت نظرات</h1>
+        <div class="row" style="margin-top:10px;">
+          <button onclick="logout()" class="logout-btn">🚪 خروج از پنل</button>
+          <span class="badge" id="total-badge">مجموع نظرات: 0</span>
+        </div>
+        <div style="margin-top:16px;">
+          <canvas id="statusChart" height="120"></canvas>
+        </div>
+      </div>
+
+      <!-- Pending -->
+      <div class="section card">
+        <h2>⏳ در انتظار تأیید (<span id="count-pending">0</span>)</h2>
+
+        <div class="controls">
+          <div class="left">
+            <label><input type="checkbox" id="pending-select-all" class="checkbox"> انتخاب همه</label>
+            <button class="approve" onclick="bulkApprove('pending')">✅ تأیید انتخاب‌شده‌ها</button>
+            <button class="reject"  onclick="bulkReject('pending')">❌ رد انتخاب‌شده‌ها</button>
+          </div>
+          <div class="right">
+            <span class="badge">عملیات دسته‌جمعی</span>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>انتخاب</th>
+              <th>نام کاربر</th>
+              <th>پزشک</th>
+              <th>نظر</th>
+              <th>تاریخ</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+          <tbody id="pending-body">
+            <tr><td colspan="6">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Approved -->
+      <div class="section card">
+        <h2>✅ تأیید شده (<span id="count-approved">0</span>)</h2>
+
+        <div class="controls">
+          <div class="left">
+            <label><input type="checkbox" id="approved-select-all" class="checkbox"> انتخاب همه</label>
+            <button class="reject" onclick="bulkReject('approved')">❌ انتقال انتخاب‌شده‌ها به رد شده</button>
+          </div>
+          <div class="right"><span class="badge">مدیریت سریع</span></div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>انتخاب</th>
+              <th>نام کاربر</th>
+              <th>پزشک</th>
+              <th>نظر</th>
+              <th>تاریخ</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+          <tbody id="approved-body">
+            <tr><td colspan="6">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Rejected -->
+      <div class="section card">
+        <h2>❌ رد شده (<span id="count-rejected">0</span>)</h2>
+
+        <div class="controls">
+          <div class="left">
+            <label><input type="checkbox" id="rejected-select-all" class="checkbox"> انتخاب همه</label>
+            <button class="approve" onclick="bulkApprove('rejected')">✅ انتقال انتخاب‌شده‌ها به تأیید شده</button>
+          </div>
+          <div class="right"><span class="badge">بازگردانی سریع</span></div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>انتخاب</th>
+              <th>نام کاربر</th>
+              <th>پزشک</th>
+              <th>نظر</th>
+              <th>تاریخ</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+          <tbody id="rejected-body">
+            <tr><td colspan="6">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
   </div>
 
-  <h2>⏳ در انتظار تأیید</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>نام کاربر</th>
-        <th>پزشک</th>
-        <th>نظر</th>
-        <th>تاریخ</th>
-        <th>عملیات</th>
-      </tr>
-    </thead>
-    <tbody id="pending-body">
-      <tr class="muted"><td colspan="5">—</td></tr>
-    </tbody>
-  </table>
-
-  <h2>✅ تأیید شده</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>نام کاربر</th>
-        <th>پزشک</th>
-        <th>نظر</th>
-        <th>تاریخ</th>
-        <th>عملیات</th>
-      </tr>
-    </thead>
-    <tbody id="approved-body">
-      <tr class="muted"><td colspan="5">—</td></tr>
-    </tbody>
-  </table>
-
-  <h2>❌ رد شده</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>نام کاربر</th>
-        <th>پزشک</th>
-        <th>نظر</th>
-        <th>تاریخ</th>
-        <th>عملیات</th>
-      </tr>
-    </thead>
-    <tbody id="rejected-body">
-      <tr class="muted"><td colspan="5">—</td></tr>
-    </tbody>
-  </table>
-
   <script>
-    // ⚠️ اینجا کلید درست رو بذار (anon public key کامل از داشبورد Supabase)
+    // Supabase client
     const client = supabase.createClient(
       'https://lzfonyofgwfiwzsloqjp.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY'
     );
 
-    function rowHtml(row){
+    // Simple auth
+    function login() {
+      const pass = document.getElementById('pass').value.trim();
+      const err = document.getElementById('err');
+      if (!pass) { err.textContent = 'رمز را وارد کنید.'; return; }
+      if (pass === 'dradmin123') {
+        localStorage.setItem('admin', 'ok');
+        showPanel();
+      } else {
+        err.textContent = 'رمز اشتباه است!';
+      }
+    }
+    function logout() {
+      localStorage.removeItem('admin');
+      location.reload();
+    }
+    function showPanel() {
+      const loginBox = document.getElementById('login-box');
+      loginBox.style.opacity = '0';
+      setTimeout(() => {
+        loginBox.classList.add('hidden');
+        const panel = document.getElementById('panel');
+        panel.classList.remove('hidden');
+        panel.style.opacity = '0';
+        setTimeout(() => { panel.style.opacity = '1'; }, 50);
+        initRealtime();
+        loadComments();
+      }, 300);
+    }
+    if (localStorage.getItem('admin') === 'ok') { showPanel(); }
+
+    // Toast
+    function showToast(msg){
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      t.style.opacity = '0';
+      setTimeout(()=>{ t.style.opacity = '1'; }, 20);
+      setTimeout(()=>{ t.style.opacity = '0'; setTimeout(()=>{ t.style.display='none'; }, 200); }, 2500);
+    }
+
+    // Row template
+    function rowHtml(row, section){
+      const dateStr = row.created_at ? new Date(row.created_at).toLocaleString('fa-IR') : '-';
+      const safe = s => (s || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
       return `
         <tr>
-          <td>${row.user_name || '-'}</td>
-          <td>${row.doctor_name || '-'}</td>
-          <td>${row.comment || '-'}</td>
-          <td>${row.created_at ? new Date(row.created_at).toLocaleString('fa-IR') : '-'}</td>
+          <td><input type="checkbox" class="checkbox" data-id="${row.id}" data-section="${section}"></td>
+          <td>${safe(row.user_name) || '-'}</td>
+          <td>${safe(row.doctor_name) || '-'}</td>
+          <td class="comment">${safe(row.comment) || '-'}</td>
+          <td>${dateStr}</td>
           <td>
-            <button class="approve" onclick="approveComment('${row.id}')">تأیید</button>
-            <button class="reject" onclick="rejectComment('${row.id}')">رد</button>
-            <button class="delete" onclick="deleteComment('${row.id}')">حذف</button>
+            <button class="approve" onclick="approveComment('${row.id}')">✅ تأیید</button>
+            <button class="reject"  onclick="rejectComment('${row.id}')">❌ رد</button>
+            <button class="delete"  onclick="deleteComment('${row.id}')">🗑️ حذف</button>
           </td>
         </tr>
       `;
     }
 
-    async function loadSection(queryFn, tbodyId){
+    // Load sections
+    async function fetchPending(){ return client.from('comments').select('*').is('approved', null).order('created_at', {ascending:false}); }
+    async function fetchApproved(){ return client.from('comments').select('*').eq('approved', true).order('created_at', {ascending:false}); }
+    async function fetchRejected(){ return client.from('comments').select('*').eq('approved', false).order('created_at', {ascending:false}); }
+
+    async function fillSection(res, tbodyId, countId, sectionName){
       const tbody = document.getElementById(tbodyId);
-      tbody.innerHTML = `<tr class="muted"><td colspan="5">در حال بارگذاری…</td></tr>`;
-      const { data, error } = await queryFn();
+      const countEl = document.getElementById(countId);
+      const { data, error } = res;
       if(error){
-        console.error(error);
-        showError(`خطا در خواندن ${tbodyId}: ${error.message}`);
-        tbody.innerHTML = `<tr class="muted"><td colspan="5">خطا در بارگذاری</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6">خطا: ${error.message}</td></tr>`;
+        countEl.textContent = '0';
         return;
       }
       if(!data || data.length === 0){
-        tbody.innerHTML = `<tr class="muted"><td colspan="5">موردی نیست</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6">موردی نیست</td></tr>`;
+        countEl.textContent = '0';
         return;
       }
-      tbody.innerHTML = data.map(rowHtml).join('');
+      tbody.innerHTML = data.map(row => rowHtml(row, sectionName)).join('');
+      countEl.textContent = data.length;
     }
 
-    function showError(msg){
-      const el = document.getElementById('err');
-      el.style.display = 'block';
-      el.textContent = msg;
-    }
+    let chart; // Chart.js instance
 
     async function loadComments(){
+      // Show loading
+      document.getElementById('pending-body').innerHTML = `<tr><td colspan="6">در حال بارگذاری…</td></tr>`;
+      document.getElementById('approved-body').innerHTML = `<tr><td colspan="6">در حال بارگذاری…</td></tr>`;
+      document.getElementById('rejected-body').innerHTML = `<tr><td colspan="6">در حال بارگذاری…</td></tr>`;
+
+      const [pd, ad, rd] = await Promise.all([fetchPending(), fetchApproved(), fetchRejected()]);
+
       await Promise.all([
-        loadSection(() => client.from('comments').select('*').is('approved', null).order('created_at', {ascending:false}), 'pending-body'),
-        loadSection(() => client.from('comments').select('*').eq('approved', true).order('created_at', {ascending:false}), 'approved-body'),
-        loadSection(() => client.from('comments').select('*').eq('approved', false).order('created_at', {ascending:false}), 'rejected-body'),
+        fillSection(pd, 'pending-body',  'count-pending',  'pending'),
+        fillSection(ad, 'approved-body', 'count-approved', 'approved'),
+        fillSection(rd, 'rejected-body', 'count-rejected', 'rejected'),
       ]);
+
+      const pendingCount  = pd.data?.length || 0;
+      const approvedCount = ad.data?.length || 0;
+      const rejectedCount = rd.data?.length || 0;
+      const total = pendingCount + approvedCount + rejectedCount;
+      document.getElementById('total-badge').textContent = `مجموع نظرات: ${total}`;
+
+      renderChart(pendingCount, approvedCount, rejectedCount);
+      wireSelectAll();
     }
 
+    function renderChart(pending, approved, rejected){
+      const ctx = document.getElementById('statusChart');
+      const data = {
+        labels: ['در انتظار', 'تأیید شده', 'رد شده'],
+        datasets: [{
+          data: [pending, approved, rejected],
+          backgroundColor: ['#93c5fd', '#10b981', '#f59e0b'],
+          borderColor: ['#60a5fa', '#059669', '#d97706'],
+          borderWidth: 1.5
+        }]
+      };
+      const options = {
+        plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vazir' } } } },
+        animation: { duration: 600 },
+        responsive: true,
+        maintainAspectRatio: false
+      };
+      if(chart){ chart.data = data; chart.update(); }
+      else { chart = new Chart(ctx, { type: 'pie', data, options }); }
+    }
+
+    // Approve / Reject / Delete single
     async function approveComment(id){
       const { error } = await client.from('comments').update({approved:true}).eq('id', id);
-      if(error){ return showError(`خطا در تأیید: ${error.message}`); }
-      loadComments();
+      if(error){ alert('خطا در تأیید: ' + error.message); return; }
+      showToast('✅ نظر تأیید شد');
+      await loadComments();
     }
-
     async function rejectComment(id){
       const { error } = await client.from('comments').update({approved:false}).eq('id', id);
-      if(error){ return showError(`خطا در رد: ${error.message}`); }
-      loadComments();
+      if(error){ alert('خطا در رد: ' + error.message); return; }
+      showToast('❌ نظر رد شد');
+      await loadComments();
     }
-
     async function deleteComment(id){
-      if(!confirm('آیا مطمئن هستید؟')) return;
+      if(!confirm('حذف این نظر؟')) return;
       const { error } = await client.from('comments').delete().eq('id', id);
-      if(error){ return showError(`خطا در حذف: ${error.message}`); }
-      loadComments();
+      if(error){ alert('خطا در حذف: ' + error.message); return; }
+      showToast('🗑️ نظر حذف شد');
+      await loadComments();
     }
 
-    loadComments();
-  </script>
+    // Bulk actions
+    function getSelectedIds(section){
+      return Array.from(document.querySelectorAll(`input[type="checkbox"][data-section="${section}"]:checked`))
+        .map(el => el.getAttribute('data-id'));
+    }
+    async function bulkApprove(section){
+      const ids = getSelectedIds(section);
+      if(ids.length === 0){ showToast('هیچ موردی انتخاب نشده'); return; }
+      const { error } = await client.from('comments').update({approved:true}).in('id', ids);
+      if(error){ alert('خطا در تأیید دسته‌جمعی: ' + error.message); return; }
+      showToast(`✅ ${ids.length} مورد تأیید شد`);
+      await loadComments();
+    }
+    async function bulkReject(section){
+      const ids = getSelectedIds(section);
+      if(ids.length === 0){ showToast('هیچ موردی انتخاب نشده'); return; }
+      const { error } = await client.from('comments').update({approved:false}).in('id', ids);
+      if(error){ alert('خطا در رد دسته‌جمعی: ' + error.message); return; }
+      showToast(`❌ ${ids.length} مورد رد شد`);
+      await loadComments();
+    }
+    function wireSelectAll(){
+      // Select-all checkboxes
+      const map = [
+        ['pending-select-all',  'pending'],
+        ['approved-select-all', 'approved'],
+        ['rejected-select-all', 'rejected']
+      ];
+      map.forEach(([chkId, section])=>{
+        const chk = document.getElementById(chkId);
+        if(!chk) return;
+        chk.onchange = () => {
+          document.querySelectorAll(`input[type="checkbox"][data-section="${section}"]`)
+            .forEach(el => { el.checked = chk.checked; });
+        };
+      });
+    }
 
-  <div class="hint">
-    اگر بالا خطای RLS دیدی یا بخش‌ها خالی ماند: در Supabase برای جدول comments سیاست‌های زیر را موقتاً بگذار تا تست کنی:
+    // Realtime notifications
+    function initRealtime(){
+      try{
+        const channel = client.channel('comments-realtime')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'comments'
+          }, payload => {
+            const ev = payload.eventType;
+            if(ev === 'INSERT') showToast('🆕 نظر جدید ثبت شد');
+            else if(ev === 'UPDATE') showToast('🔄 نظر به‌روزرسانی شد');
+            else if(ev === 'DELETE') showToast('🗑️ نظر حذف شد');
+            // Refresh softly
+            loadComments();
+          })
+          .subscribe();
+      } catch(e){
+        console.warn('Realtime init error', e);
+      }
+    }
+  </script>
+</body>
+</html>
