@@ -14,12 +14,13 @@
     h1, h2 {
       color: #333;
     }
-    form {
+    form, .comment, .pending, #adminLogin {
       background: #fff;
       padding: 1rem;
       border-radius: 8px;
       margin-bottom: 2rem;
       box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      border: 1px solid #ddd;
     }
     input, textarea {
       width: 100%;
@@ -40,13 +41,6 @@
     button:hover {
       background: #0056b3;
     }
-    .comment, .pending {
-      background: #fff;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
     .pending button {
       background: #28a745;
       margin-top: 0.5rem;
@@ -61,6 +55,8 @@
     <input type="text" id="user_name" required>
     <label>نام پزشک:</label>
     <input type="text" id="doctor_name" required>
+    <label>ایمیل شما:</label>
+    <input type="email" id="email" required>
     <label>نظر شما:</label>
     <textarea id="comment" rows="4" required></textarea>
     <button type="submit">ارسال نظر</button>
@@ -69,8 +65,13 @@
   <h2>نظرات تأییدشده</h2>
   <div id="approvedComments"></div>
 
-  <h2>پنل مدیریت نظرات جدید</h2>
-  <div id="pendingComments"></div>
+  <div id="adminLogin">
+    <h2>ورود مدیر</h2>
+    <input type="password" id="adminPass" placeholder="رمز عبور مدیر">
+    <button onclick="checkAdmin()">ورود</button>
+  </div>
+
+  <div id="pendingComments" style="display: none;"></div>
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -84,11 +85,12 @@
       e.preventDefault();
       const user_name = document.getElementById('user_name').value;
       const doctor_name = document.getElementById('doctor_name').value;
+      const email = document.getElementById('email').value;
       const comment = document.getElementById('comment').value;
       const user_token = crypto.randomUUID();
 
       const { error } = await client.from('comments').insert([
-        { user_name, doctor_name, comment, user_token, approved: false }
+        { user_name, doctor_name, email, comment, user_token, approved: false }
       ]);
 
       if (error) {
@@ -97,7 +99,6 @@
         alert('نظر شما ثبت شد و پس از تأیید نمایش داده می‌شود ✅');
         form.reset();
         loadApproved();
-        loadPending();
       }
     });
 
@@ -131,15 +132,16 @@
         .order('created_at', { ascending: false });
 
       const container = document.getElementById('pendingComments');
-      container.innerHTML = '';
+      container.innerHTML = '<h2>پنل مدیریت نظرات جدید</h2>';
       if (error) return;
 
       data.forEach(c => {
         const div = document.createElement('div');
         div.className = 'pending';
         div.innerHTML = `
-          <p><strong>${c.user_name}</strong درباره <strong>${c.doctor_name}</strong:</p>
+          <p><strong>${c.user_name}</strong درباره <strong>${c.doctor_name}</strong>:</p>
           <p>${c.comment}</p>
+          <p><em>${c.email}</em></p>
           <button onclick="approve('${c.id}')">تأیید نظر</button>
         `;
         container.appendChild(div);
@@ -161,8 +163,18 @@
       }
     };
 
+    window.checkAdmin = function() {
+      const pass = document.getElementById('adminPass').value;
+      if (pass === 'admin123') {
+        document.getElementById('adminLogin').style.display = 'none';
+        document.getElementById('pendingComments').style.display = 'block';
+        loadPending();
+      } else {
+        alert('رمز اشتباه است ❌');
+      }
+    };
+
     loadApproved();
-    loadPending();
   </script>
 </body>
 </html>
