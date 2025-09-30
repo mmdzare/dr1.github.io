@@ -6,20 +6,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body {font-family:Tahoma,sans-serif;direction:rtl;background:#f5f7fa;margin:0;padding:20px}
-    h1 {text-align:center;color:#00796b}
-    table {width:100%;border-collapse:collapse;margin-top:20px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.1)}
-    th,td {padding:12px;border-bottom:1px solid #ddd;text-align:center}
-    th {background:#00bcd4;color:#fff}
-    tr:hover {background:#f1f1f1}
-    button {padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;margin:2px}
-    .approve {background:#4caf50;color:#fff}
-    .delete {background:#f44336;color:#fff}
-    .reject {background:#ff9800;color:#fff}
+    body {
+      font-family: "Vazir", Tahoma, sans-serif;
+      direction: rtl;
+      background: linear-gradient(135deg, #f0fdfa, #e0f2fe);
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #0d9488;
+      margin-bottom: 10px;
+    }
+    h2 {
+      margin-top: 40px;
+      color: #374151;
+      border-right: 5px solid #0ea5e9;
+      padding-right: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,.08);
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: center;
+    }
+    th {
+      background: #0ea5e9;
+      color: #fff;
+      font-weight: bold;
+    }
+    tr:hover td {
+      background: #f9fafb;
+    }
+    button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    button:hover { opacity: 0.85; transform: scale(1.05); }
+    .approve { background:#22c55e; color:#fff }
+    .reject { background:#f59e0b; color:#fff }
+    .delete { background:#ef4444; color:#fff }
+    .muted { color:#6b7280 }
+    .error {
+      background:#fee2e2;
+      color:#b91c1c;
+      padding:10px;
+      border-radius:8px;
+      margin:12px 0;
+      display:none;
+    }
+    .hint {
+      background:#e0f2fe;
+      color:#0c4a6e;
+      padding:10px;
+      border-radius:8px;
+      margin:12px 0;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
-  <h1>پنل مدیریت نظرات</h1>
+  <h1>📋 پنل مدیریت نظرات</h1>
+
+  <div id="err" class="error"></div>
+  <div class="hint">
+    اگر این بخش‌ها خالی‌اند، احتمالاً RLS جلوی خواندن/آپدیت را گرفته. پایین صفحه راه‌حل SQL را گذاشتم.
+  </div>
+
+  <h2>⏳ در انتظار تأیید</h2>
   <table>
     <thead>
       <tr>
@@ -27,63 +94,121 @@
         <th>پزشک</th>
         <th>نظر</th>
         <th>تاریخ</th>
-        <th>وضعیت</th>
         <th>عملیات</th>
       </tr>
     </thead>
-    <tbody id="comments-body"></tbody>
+    <tbody id="pending-body">
+      <tr class="muted"><td colspan="5">—</td></tr>
+    </tbody>
+  </table>
+
+  <h2>✅ تأیید شده</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>نام کاربر</th>
+        <th>پزشک</th>
+        <th>نظر</th>
+        <th>تاریخ</th>
+        <th>عملیات</th>
+      </tr>
+    </thead>
+    <tbody id="approved-body">
+      <tr class="muted"><td colspan="5">—</td></tr>
+    </tbody>
+  </table>
+
+  <h2>❌ رد شده</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>نام کاربر</th>
+        <th>پزشک</th>
+        <th>نظر</th>
+        <th>تاریخ</th>
+        <th>عملیات</th>
+      </tr>
+    </thead>
+    <tbody id="rejected-body">
+      <tr class="muted"><td colspan="5">—</td></tr>
+    </tbody>
   </table>
 
   <script>
+    // ⚠️ اینجا کلید درست رو بذار (anon public key کامل از داشبورد Supabase)
     const client = supabase.createClient(
-      'https://YOUR_PROJECT.supabase.co',
-      'YOUR_ANON_PUBLIC_KEY'
+      'https://lzfonyofgwfiwzsloqjp.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY'
     );
 
-    async function loadComments(){
-      const { data, error } = await client
-        .from('comments')
-        .select('*')
-        .order('created_at',{ascending:false});
-      if(error){ console.error(error); return; }
-
-      const tbody = document.getElementById('comments-body');
-      tbody.innerHTML='';
-      data.forEach(row=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`
-          <td>${row.user_name}</td>
-          <td>${row.doctor_name}</td>
-          <td>${row.comment}</td>
-          <td>${new Date(row.created_at).toLocaleString('fa-IR')}</td>
-          <td>${row.approved ? '✅ تأیید شده' : '⏳ در انتظار'}</td>
+    function rowHtml(row){
+      return `
+        <tr>
+          <td>${row.user_name || '-'}</td>
+          <td>${row.doctor_name || '-'}</td>
+          <td>${row.comment || '-'}</td>
+          <td>${row.created_at ? new Date(row.created_at).toLocaleString('fa-IR') : '-'}</td>
           <td>
-            <button class="approve" onclick="approveComment(${row.id})">تأیید</button>
-            <button class="reject" onclick="rejectComment(${row.id})">رد</button>
-            <button class="delete" onclick="deleteComment(${row.id})">حذف</button>
+            <button class="approve" onclick="approveComment('${row.id}')">تأیید</button>
+            <button class="reject" onclick="rejectComment('${row.id}')">رد</button>
+            <button class="delete" onclick="deleteComment('${row.id}')">حذف</button>
           </td>
-        `;
-        tbody.appendChild(tr);
-      });
+        </tr>
+      `;
+    }
+
+    async function loadSection(queryFn, tbodyId){
+      const tbody = document.getElementById(tbodyId);
+      tbody.innerHTML = `<tr class="muted"><td colspan="5">در حال بارگذاری…</td></tr>`;
+      const { data, error } = await queryFn();
+      if(error){
+        console.error(error);
+        showError(`خطا در خواندن ${tbodyId}: ${error.message}`);
+        tbody.innerHTML = `<tr class="muted"><td colspan="5">خطا در بارگذاری</td></tr>`;
+        return;
+      }
+      if(!data || data.length === 0){
+        tbody.innerHTML = `<tr class="muted"><td colspan="5">موردی نیست</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = data.map(rowHtml).join('');
+    }
+
+    function showError(msg){
+      const el = document.getElementById('err');
+      el.style.display = 'block';
+      el.textContent = msg;
+    }
+
+    async function loadComments(){
+      await Promise.all([
+        loadSection(() => client.from('comments').select('*').is('approved', null).order('created_at', {ascending:false}), 'pending-body'),
+        loadSection(() => client.from('comments').select('*').eq('approved', true).order('created_at', {ascending:false}), 'approved-body'),
+        loadSection(() => client.from('comments').select('*').eq('approved', false).order('created_at', {ascending:false}), 'rejected-body'),
+      ]);
     }
 
     async function approveComment(id){
-      await client.from('comments').update({approved:true}).eq('id',id);
+      const { error } = await client.from('comments').update({approved:true}).eq('id', id);
+      if(error){ return showError(`خطا در تأیید: ${error.message}`); }
       loadComments();
     }
 
     async function rejectComment(id){
-      await client.from('comments').update({approved:false}).eq('id',id);
+      const { error } = await client.from('comments').update({approved:false}).eq('id', id);
+      if(error){ return showError(`خطا در رد: ${error.message}`); }
       loadComments();
     }
 
     async function deleteComment(id){
       if(!confirm('آیا مطمئن هستید؟')) return;
-      await client.from('comments').delete().eq('id',id);
+      const { error } = await client.from('comments').delete().eq('id', id);
+      if(error){ return showError(`خطا در حذف: ${error.message}`); }
       loadComments();
     }
 
     loadComments();
   </script>
-</body>
-</html>
+
+  <div class="hint">
+    اگر بالا خطای RLS دیدی یا بخش‌ها خالی ماند: در Supabase برای جدول comments سیاست‌های زیر را موقتاً بگذار تا تست کنی:

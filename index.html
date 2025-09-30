@@ -317,8 +317,8 @@
       if(!comment) return;
 
       const { error } = await client.from('comments').insert([
-        { user_name, doctor_name, comment, user_token, approved: false }
-      ]);
+  { user_name, doctor_name, comment, user_token }
+]);
 
       if (error) {
         alert('خطا در ثبت نظر');
