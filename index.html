@@ -8,6 +8,7 @@
       font-family: 'Tahoma', sans-serif;
       margin: 0;
       background: linear-gradient(135deg, #e0f7fa, #ffffff);
+      direction: rtl;
     }
     nav {
       background: #00695c;
@@ -47,9 +48,7 @@
       border-radius: 15px;
       overflow: hidden;
       box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-      transform: translateY(0);
       transition: transform 0.4s ease, box-shadow 0.4s ease;
-      position: relative;
     }
     .doctor-card:hover {
       transform: translateY(-10px) scale(1.03);
@@ -61,14 +60,9 @@
       object-fit: contain;
       background: #f5f5f5;
       padding: 20px;
-      transition: transform 0.5s ease;
-    }
-    .doctor-card:hover img {
-      transform: scale(1.1);
     }
     .doctor-info {
       padding: 20px;
-      animation: fadeIn 0.8s ease;
     }
     .doctor-info h2 {
       margin: 0;
@@ -78,9 +72,44 @@
       margin: 5px 0;
       color: #555;
     }
-    @keyframes fadeIn {
-      from {opacity: 0; transform: translateY(20px);}
-      to {opacity: 1; transform: translateY(0);}
+
+    .comment-box {
+      padding: 15px;
+      border-top: 1px solid #ddd;
+      background: #fafafa;
+    }
+    .comment-box textarea {
+      width: 100%;
+      height: 60px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 8px;
+      resize: none;
+      font-family: inherit;
+    }
+    .comment-box button {
+      margin-top: 8px;
+      background: #00796b;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .comment-box button:hover {
+      background: #004d40;
+    }
+    .comments-list {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #333;
+    }
+    .comments-list p {
+      background: #e0f2f1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin: 5px 0;
     }
 
     footer {
@@ -89,6 +118,62 @@
       text-align: center;
       padding: 20px;
       margin-top: 40px;
+    }
+
+    /* Chatbox styles */
+    .chatbox {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      width: 300px;
+      max-height: 400px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-size: 14px;
+    }
+    .chat-header {
+      background: #00796b;
+      color: white;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .chat-messages {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      background: #f9f9f9;
+    }
+    .chat-messages p {
+      background: #e0f2f1;
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin: 5px 0;
+    }
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+    .chat-input input {
+      flex: 1;
+      border: none;
+      padding: 10px;
+      font-family: inherit;
+    }
+    .chat-input button {
+      background: #00796b;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+    }
+    .chat-input button:hover {
+      background: #004d40;
     }
   </style>
 </head>
@@ -101,34 +186,52 @@
 
 <header>
   <h1>معرفی پزشکان برتر</h1>
-  <p>با طراحی مدرن و آواتارهای مینیمال</p>
+  <p>با طراحی مدرن، بخش نظرات و پشتیبانی آنلاین</p>
 </header>
 
 <div class="container" id="doctors">
+  <!-- Doctor 1 -->
   <div class="doctor-card">
-    <img src="https://cdn-icons-png.flaticon.com/512/387/387561.png" alt="دکتر امینی">
+    <img src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png" alt="دکتر امینی">
     <div class="doctor-info">
       <h2>دکتر امینی</h2>
       <p>متخصص قلب و عروق - شیراز</p>
       <p>شماره تماس: 0912xxxxxxx</p>
     </div>
+    <div class="comment-box">
+      <textarea placeholder="نظر خود را بنویسید..."></textarea>
+      <button onclick="addComment(this)">ارسال نظر</button>
+      <div class="comments-list"></div>
+    </div>
   </div>
 
+  <!-- Doctor 2 -->
   <div class="doctor-card">
-    <img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" alt="دکتر رحیمی">
+    <img src="https://cdn-icons-png.flaticon.com/512/2922/2922656.png" alt="دکتر رحیمی">
     <div class="doctor-info">
       <h2>دکتر رحیمی</h2>
       <p>جراح مغز و اعصاب - ساری</p>
       <p>شماره تماس: 0935xxxxxxx</p>
     </div>
+    <div class="comment-box">
+      <textarea placeholder="نظر خود را بنویسید..."></textarea>
+      <button onclick="addComment(this)">ارسال نظر</button>
+      <div class="comments-list"></div>
+    </div>
   </div>
 
+  <!-- Doctor 3 -->
   <div class="doctor-card">
-    <img src="https://cdn-icons-png.flaticon.com/512/387/387568.png" alt="دکتر کاظمی">
+    <img src="https://cdn-icons-png.flaticon.com/512/2922/2922688.png" alt="دکتر کاظمی">
     <div class="doctor-info">
       <h2>دکتر کاظمی</h2>
       <p>متخصص داخلی - تهران</p>
       <p>شماره تماس: 0913xxxxxxx</p>
+    </div>
+    <div class="comment-box">
+      <textarea placeholder="نظر خود را بنویسید..."></textarea>
+      <button onclick="addComment(this)">ارسال نظر</button>
+      <div class="comments-list"></div>
     </div>
   </div>
 </div>
@@ -137,5 +240,16 @@
   <p>تماس با ما: info@example.com | تلفن: 021-xxxxxxx</p>
 </footer>
 
-</body>
-</html>
+<!-- Chatbox -->
+<div class="chatbox" id="chatbox">
+  <div class="chat-header">پشتیبانی آنلاین</div>
+  <div class="chat-messages" id="chat-messages"></div>
+  <div class="chat-input">
+    <input type="text" id="chat-input" placeholder="پیام خود را بنویسید...">
+    <button onclick="sendMessage()">ارسال</button>
+  </div>
+</div>
+
+<script>
+  // بخش کامنت
+  function addComment(button)
