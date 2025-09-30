@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>نظرات کاربران</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    form {
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    input, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .comment, .pending {
+      background: #fff;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+    .pending button {
+      background: #28a745;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ثبت نظر</h1>
+  <form id="commentForm">
+    <label>نام شما:</label>
+    <input type="text" id="user_name" required>
+    <label>نام پزشک:</label>
+    <input type="text" id="doctor_name" required>
+    <label>نظر شما:</label>
+    <textarea id="comment" rows="4" required></textarea>
+    <button type="submit">ارسال نظر</button>
+  </form>
+
+  <h2>نظرات تأییدشده</h2>
+  <div id="approvedComments"></div>
+
+  <h2>پنل مدیریت نظرات جدید</h2>
+  <div id="pendingComments"></div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    const supabaseUrl = 'https://lzfonyofgwfiwzsloqjp.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY';
+    const client = createClient(supabaseUrl, supabaseKey);
+
+    const form = document.getElementById('commentForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user_name = document.getElementById('user_name').value;
+      const doctor_name = document.getElementById('doctor_name').value;
+      const comment = document.getElementById('comment').value;
+      const user_token = crypto.randomUUID();
+
+      const { error } = await client.from('comments').insert([
+        { user_name, doctor_name, comment, user_token, approved: false }
+      ]);
+
+      if (error) {
+        alert('خطا در ثبت نظر: ' + error.message);
+      } else {
+        alert('نظر شما ثبت شد و پس از تأیید نمایش داده می‌شود ✅');
+        form.reset();
+        loadApproved();
+        loadPending();
+      }
+    });
+
+    async function loadApproved() {
+      const { data, error } = await client
+        .from('comments')
+        .select('*')
+        .eq('approved', true)
+        .order('created_at', { ascending: false });
+
+      const container = document.getElementById('approvedComments');
+      container.innerHTML = '';
+      if (error) return;
+
+      data.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'comment';
+        div.innerHTML = `
+          <p><strong>${c.user_name}</strong درباره <strong>${c.doctor_name}</strong:</p>
+          <p>${c.comment}</p>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function loadPending() {
+      const { data, error } = await client
+        .from('comments')
+        .select('*')
+        .eq('approved', false)
+        .order('created_at', { ascending: false });
+
+      const container = document.getElementById('pendingComments');
+      container.innerHTML = '';
+      if (error) return;
+
+      data.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'pending';
+        div.innerHTML = `
+          <p><strong>${c.user_name}</strong درباره <strong>${c.doctor_name}</strong:</p>
+          <p>${c.comment}</p>
+          <button onclick="approve('${c.id}')">تأیید نظر</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    window.approve = async function(id) {
+      const { error } = await client
+        .from('comments')
+        .update({ approved: true })
+        .eq('id', id);
+
+      if (error) {
+        alert('خطا در تأیید نظر: ' + error.message);
+      } else {
+        alert('نظر تأیید شد ✅');
+        loadApproved();
+        loadPending();
+      }
+    };
+
+    loadApproved();
+    loadPending();
+  </script>
+</body>
+</html>
