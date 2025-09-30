@@ -2,179 +2,88 @@
 <html lang="fa">
 <head>
   <meta charset="UTF-8">
-  <title>نظرات کاربران</title>
+  <title>پنل مدیریت نظرات</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #f0f0f0;
-      padding: 2rem;
-      max-width: 800px;
-      margin: auto;
-    }
-    h1, h2 {
-      color: #333;
-    }
-    form, .comment, .pending, #adminLogin {
-      background: #fff;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 2rem;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-      border: 1px solid #ddd;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    .pending button {
-      background: #28a745;
-      margin-top: 0.5rem;
-    }
+    body {font-family:Tahoma,sans-serif;direction:rtl;background:#f5f7fa;margin:0;padding:20px}
+    h1 {text-align:center;color:#00796b}
+    table {width:100%;border-collapse:collapse;margin-top:20px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+    th,td {padding:12px;border-bottom:1px solid #ddd;text-align:center}
+    th {background:#00bcd4;color:#fff}
+    tr:hover {background:#f1f1f1}
+    button {padding:6px 12px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;margin:2px}
+    .approve {background:#4caf50;color:#fff}
+    .delete {background:#f44336;color:#fff}
+    .reject {background:#ff9800;color:#fff}
   </style>
 </head>
 <body>
+  <h1>پنل مدیریت نظرات</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>نام کاربر</th>
+        <th>پزشک</th>
+        <th>نظر</th>
+        <th>تاریخ</th>
+        <th>وضعیت</th>
+        <th>عملیات</th>
+      </tr>
+    </thead>
+    <tbody id="comments-body"></tbody>
+  </table>
 
-  <h1>ثبت نظر</h1>
-  <form id="commentForm">
-    <label>نام شما:</label>
-    <input type="text" id="user_name" required>
-    <label>نام پزشک:</label>
-    <input type="text" id="doctor_name" required>
-    <label>ایمیل شما:</label>
-    <input type="email" id="email" required>
-    <label>نظر شما:</label>
-    <textarea id="comment" rows="4" required></textarea>
-    <button type="submit">ارسال نظر</button>
-  </form>
+  <script>
+    const client = supabase.createClient(
+      'https://YOUR_PROJECT.supabase.co',
+      'YOUR_ANON_PUBLIC_KEY'
+    );
 
-  <h2>نظرات تأییدشده</h2>
-  <div id="approvedComments"></div>
-
-  <div id="adminLogin">
-    <h2>ورود مدیر</h2>
-    <input type="password" id="adminPass" placeholder="رمز عبور مدیر">
-    <button onclick="checkAdmin()">ورود</button>
-  </div>
-
-  <div id="pendingComments" style="display: none;"></div>
-
-  <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-    const supabaseUrl = 'https://lzfonyofgwfiwzsloqjp.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY';
-    const client = createClient(supabaseUrl, supabaseKey);
-
-    const form = document.getElementById('commentForm');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const user_name = document.getElementById('user_name').value;
-      const doctor_name = document.getElementById('doctor_name').value;
-      const email = document.getElementById('email').value;
-      const comment = document.getElementById('comment').value;
-      const user_token = crypto.randomUUID();
-
-      const { error } = await client.from('comments').insert([
-        { user_name, doctor_name, email, comment, user_token, approved: false }
-      ]);
-
-      if (error) {
-        alert('خطا در ثبت نظر: ' + error.message);
-      } else {
-        alert('نظر شما ثبت شد و پس از تأیید نمایش داده می‌شود ✅');
-        form.reset();
-        loadApproved();
-      }
-    });
-
-    async function loadApproved() {
+    async function loadComments(){
       const { data, error } = await client
         .from('comments')
         .select('*')
-        .eq('approved', true)
-        .order('created_at', { ascending: false });
+        .order('created_at',{ascending:false});
+      if(error){ console.error(error); return; }
 
-      const container = document.getElementById('approvedComments');
-      container.innerHTML = '';
-      if (error) return;
-
-      data.forEach(c => {
-        const div = document.createElement('div');
-        div.className = 'comment';
-        div.innerHTML = `
-          <p><strong>${c.user_name}</strong درباره <strong>${c.doctor_name}</strong:</p>
-          <p>${c.comment}</p>
+      const tbody = document.getElementById('comments-body');
+      tbody.innerHTML='';
+      data.forEach(row=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td>${row.user_name}</td>
+          <td>${row.doctor_name}</td>
+          <td>${row.comment}</td>
+          <td>${new Date(row.created_at).toLocaleString('fa-IR')}</td>
+          <td>${row.approved ? '✅ تأیید شده' : '⏳ در انتظار'}</td>
+          <td>
+            <button class="approve" onclick="approveComment(${row.id})">تأیید</button>
+            <button class="reject" onclick="rejectComment(${row.id})">رد</button>
+            <button class="delete" onclick="deleteComment(${row.id})">حذف</button>
+          </td>
         `;
-        container.appendChild(div);
+        tbody.appendChild(tr);
       });
     }
 
-    async function loadPending() {
-      const { data, error } = await client
-        .from('comments')
-        .select('*')
-        .eq('approved', false)
-        .order('created_at', { ascending: false });
-
-      const container = document.getElementById('pendingComments');
-      container.innerHTML = '<h2>پنل مدیریت نظرات جدید</h2>';
-      if (error) return;
-
-      data.forEach(c => {
-        const div = document.createElement('div');
-        div.className = 'pending';
-        div.innerHTML = `
-          <p><strong>${c.user_name}</strong درباره <strong>${c.doctor_name}</strong>:</p>
-          <p>${c.comment}</p>
-          <p><em>${c.email}</em></p>
-          <button onclick="approve('${c.id}')">تأیید نظر</button>
-        `;
-        container.appendChild(div);
-      });
+    async function approveComment(id){
+      await client.from('comments').update({approved:true}).eq('id',id);
+      loadComments();
     }
 
-    window.approve = async function(id) {
-      const { error } = await client
-        .from('comments')
-        .update({ approved: true })
-        .eq('id', id);
+    async function rejectComment(id){
+      await client.from('comments').update({approved:false}).eq('id',id);
+      loadComments();
+    }
 
-      if (error) {
-        alert('خطا در تأیید نظر: ' + error.message);
-      } else {
-        alert('نظر تأیید شد ✅');
-        loadApproved();
-        loadPending();
-      }
-    };
+    async function deleteComment(id){
+      if(!confirm('آیا مطمئن هستید؟')) return;
+      await client.from('comments').delete().eq('id',id);
+      loadComments();
+    }
 
-    window.checkAdmin = function() {
-      const pass = document.getElementById('adminPass').value;
-      if (pass === 'admin123') {
-        document.getElementById('adminLogin').style.display = 'none';
-        document.getElementById('pendingComments').style.display = 'block';
-        loadPending();
-      } else {
-        alert('رمز اشتباه است ❌');
-      }
-    };
-
-    loadApproved();
+    loadComments();
   </script>
 </body>
 </html>
