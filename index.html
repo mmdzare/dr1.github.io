@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>معرفی پزشکان برتر</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{
       --bg1:#e3f2fd; /* آبی خیلی روشن */
@@ -260,6 +262,12 @@
 </div>
 
 <script>
+  /* اتصال به Supabase (از کلید و URL خودت که دادی استفاده می‌کنیم) */
+  const client = supabase.createClient(
+    'https://lzfonyofgwfiwzsloqjp.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY'
+  );
+
   /* Ripple effect for buttons */
   function handleRipple(btn){
     btn.classList.remove('ripple');
@@ -275,34 +283,54 @@
   },{ threshold: .15 });
   document.querySelectorAll('.doctor-card').forEach(c=>observer.observe(c));
 
-  /* Utilities for localStorage */
+  /* Utilities for localStorage (برای چت و پاک‌سازی نمایشی) */
   function lsGet(key, fallback){ try{ const v = localStorage.getItem(key); return v? JSON.parse(v): fallback }catch(e){ return fallback } }
   function lsSet(key, value){ try{ localStorage.setItem(key, JSON.stringify(value)) }catch(e){} }
 
-  /* Comments: save per doctor */
-  function addComment(button){
+  /* شناسه ناشناس کاربر */
+  function getOrCreateUserToken() {
+    let token = localStorage.getItem('anon_user_token');
+    if (!token) {
+      token = crypto.randomUUID();
+      localStorage.setItem('anon_user_token', token);
+    }
+    return token;
+  }
+
+  /* ارسال کامنت به Supabase + رندر نمایشی */
+  async function addComment(button){
     const card = button.closest('.doctor-card');
-    const id = card.dataset.id;
+    const doctor_name = card.querySelector('h2')?.textContent.trim();
     const box = button.closest('.comment-box');
     const nameInput = box.querySelector('input[type="text"]');
     const textarea = box.querySelector('textarea');
     const list = box.querySelector('.comments-list');
 
-    const name = (nameInput.value || 'کاربر').trim();
-    const text = (textarea.value || '').trim();
-    if(!text) return;
+    const user_name = (nameInput.value || 'کاربر').trim();
+    const comment = (textarea.value || '').trim();
+    const user_token = getOrCreateUserToken();
 
-    const item = { name, text, ts: Date.now() };
-    const key = 'comments:' + id;
-    const current = lsGet(key, []);
-    current.push(item);
-    lsSet(key, current);
+    if(!comment) return;
 
+    const { error } = await client.from('comments').insert([
+      { user_name, doctor_name, comment, user_token, approved: false }
+    ]);
+
+    if (error) {
+      alert('خطا در ثبت نظر');
+      console.error(error.message);
+      return;
+    }
+
+    /* رندر فوری برای فیدبک کاربر (نمایشی تا زمان تأیید) */
+    const item = { name: user_name, text: comment, ts: Date.now() };
     renderComment(list, item);
     nameInput.value = '';
     textarea.value = '';
+    alert('نظر شما ثبت شد و پس از تأیید نمایش داده می‌شود.');
   }
 
+  /* پاک کردن کامنت‌های نمایشی این کارت (لوکال) — دیتابیس را پاک نمی‌کند */
   function clearComments(button){
     const card = button.closest('.doctor-card');
     const id = card.dataset.id;
@@ -312,6 +340,7 @@
     list.innerHTML = '';
   }
 
+  /* رندر یک کامنت در UI */
   function renderComment(list, item){
     const p = document.createElement('div');
     p.className = 'comment-item';
@@ -328,15 +357,36 @@
     return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  /* Load comments on startup */
-  document.querySelectorAll('.doctor-card').forEach(card=>{
-    const id = card.dataset.id;
-    const list = card.querySelector('.comments-list');
-    const stored = lsGet('comments:'+id, []);
-    stored.forEach(item=>renderComment(list, item));
-  });
+  /* لود کامنت‌های تأییدشده از Supabase برای هر کارت */
+  async function loadApprovedComments(){
+    const cards = document.querySelectorAll('.doctor-card');
+    for (const card of cards) {
+      const doctor_name = card.querySelector('h2')?.textContent.trim();
+      const list = card.querySelector('.comments-list');
+      list.innerHTML = '';
+      const { data, error } = await client
+        .from('comments')
+        .select('user_name, comment, created_at')
+        .eq('doctor_name', doctor_name)
+        .eq('approved', true)
+        .order('created_at', { ascending: false });
 
-  /* Chatbox with localStorage persistence */
+      if (error) {
+        console.error('خطا در دریافت کامنت‌ها:', error.message);
+        continue;
+      }
+
+      (data || []).forEach(row=>{
+        const ts = row.created_at ? new Date(row.created_at).getTime() : Date.now();
+        renderComment(list, { name: row.user_name, text: row.comment, ts });
+      });
+    }
+  }
+
+  /* فراخوانی اولیه برای نمایش کامنت‌های تأییدشده */
+  document.addEventListener('DOMContentLoaded', loadApprovedComments);
+
+  /* چت با ذخیره‌سازی محلی */
   const CHAT_KEY = 'chat:messages';
   const chatBox = document.getElementById('chatbox');
   const chatMessages = document.getElementById('chat-messages');
@@ -386,9 +436,6 @@
     div.textContent = `${msg.text} — ${meta}`;
     chatMessages.appendChild(div);
   }
-
-  /* Open chat on load (optional) */
-  // toggleChat();
 </script>
 
 </body>
