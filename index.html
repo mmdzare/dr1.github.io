@@ -3,178 +3,174 @@
 <head>
   <meta charset="UTF-8">
   <title>معرفی پزشکان برتر</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: 'Tahoma', sans-serif;
-      margin: 0;
-      background: linear-gradient(135deg, #e0f7fa, #ffffff);
-      direction: rtl;
-    }
-    nav {
-      background: #00695c;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    }
-    nav a {
-      color: white;
-      margin: 0 15px;
-      text-decoration: none;
-      font-weight: bold;
-      transition: color 0.3s;
-    }
-    nav a:hover { color: #ffeb3b; }
-
-    header {
-      text-align: center;
-      padding: 60px 20px;
-      background: #004d40;
-      color: white;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    :root{
+      --bg1:#e3f2fd; /* آبی خیلی روشن */
+      --bg2:#ffffff;
+      --primary:#00bcd4; /* فیروزه‌ای روشن */
+      --primary-dark:#0097a7;
+      --accent:#ff4081; /* صورتی نئونی */
+      --text:#263238;
+      --muted:#607d8b;
+      --card:#ffffffcc; /* گلس‌مورفی */
+      --glass:#ffffff66;
+      --success:#4caf50;
+      --warning:#ff9800;
     }
 
-    .container {
-      max-width: 1100px;
-      margin: auto;
-      padding: 40px 20px;
-      display: grid;
-      grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
-      gap: 30px;
+    /* ریست سبک و RTL */
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: 'Tahoma', sans-serif; direction: rtl; color:var(--text);
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      overflow-x:hidden;
     }
 
-    .doctor-card {
-      background: white;
-      border-radius: 15px;
-      overflow: hidden;
-      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-      transition: transform 0.4s ease, box-shadow 0.4s ease;
+    /* نوار ناوبری با گلس‌مورفیسم */
+    nav{
+      position:sticky; top:0; z-index:1000;
+      backdrop-filter: saturate(160%) blur(10px);
+      background: linear-gradient(180deg, var(--glass), #ffffff22);
+      border-bottom: 1px solid #ffffff55;
+      display:flex; justify-content:center; gap:20px; padding:12px 16px;
     }
-    .doctor-card:hover {
-      transform: translateY(-10px) scale(1.03);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    nav a{
+      color:var(--primary-dark); text-decoration:none; font-weight:700;
+      padding:8px 12px; border-radius:10px;
+      transition: transform .2s ease, background .2s ease, color .2s ease;
     }
-    .doctor-card img {
-      width: 100%;
-      height: 200px;
-      object-fit: contain;
-      background: #f5f5f5;
-      padding: 20px;
+    nav a:hover{ background:#e0f7fa; color:#006064; transform:translateY(-2px) }
+
+    /* هدر پارالاکس با گرادیان پویا */
+    header{
+      position:relative; text-align:center; color:#fff; padding:80px 20px;
+      background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+      overflow:hidden;
     }
-    .doctor-info {
-      padding: 20px;
+    header::before{
+      content:""; position:absolute; inset:-30% -10% auto auto; height:200%;
+      background: radial-gradient(circle at 20% 30%, #ffffff55 0%, #ffffff00 60%);
+      animation: glow 6s ease-in-out infinite;
     }
-    .doctor-info h2 {
-      margin: 0;
-      color: #00796b;
-    }
-    .doctor-info p {
-      margin: 5px 0;
-      color: #555;
+    @keyframes glow{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(15px)} }
+    header h1{ margin:0 0 10px; font-size:32px; text-shadow:0 8px 24px #0004 }
+    header p{ margin:0; font-size:16px; opacity:.95 }
+
+    /* کانتینر کارت‌ها با اسکرول رِویل */
+    .container{
+      max-width:1200px; margin:auto; padding:40px 16px;
+      display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:26px;
     }
 
-    .comment-box {
-      padding: 15px;
-      border-top: 1px solid #ddd;
-      background: #fafafa;
+    /* کارت پزشک با گلس و افکت هاور */
+    .doctor-card{
+      background: var(--card);
+      border: 1px solid #ffffff66;
+      border-radius:18px; overflow:hidden;
+      box-shadow: 0 12px 30px rgba(0,0,0,.12);
+      transform: translateY(10px) scale(.98);
+      opacity:0; /* برای اسکرول-رِویل */
+      transition: transform .4s ease, box-shadow .4s ease, opacity .6s ease;
     }
-    .comment-box textarea {
-      width: 100%;
-      height: 60px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 8px;
-      resize: none;
-      font-family: inherit;
+    .doctor-card.revealed{
+      opacity:1; transform: translateY(0) scale(1);
     }
-    .comment-box button {
-      margin-top: 8px;
-      background: #00796b;
-      color: white;
-      border: none;
-      padding: 8px 15px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.3s;
+    .doctor-card:hover{
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 18px 40px rgba(0,0,0,.18);
     }
-    .comment-box button:hover {
-      background: #004d40;
+    .doctor-card img{
+      width:100%; height:200px; object-fit:contain; background:#f9fbff; padding:20px;
+      transition: transform .5s ease, filter .3s ease;
     }
-    .comments-list {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #333;
+    .doctor-card:hover img{ transform: scale(1.06) }
+    .doctor-info{ padding:18px }
+    .doctor-info h2{ margin:0 0 6px; color:#004d61 }
+    .doctor-info p{ margin:4px 0; color:var(--muted) }
+
+    /* کامنت‌باکس با دکمه ریپل */
+    .comment-box{ padding:14px; border-top:1px dashed #cfd8dc; background:#fafcff }
+    .comment-box textarea{
+      width:100%; height:70px; border:1px solid #cfd8dc; border-radius:10px;
+      padding:8px; resize:none; font-family:inherit; background:#ffffff;
     }
-    .comments-list p {
-      background: #e0f2f1;
-      padding: 6px 10px;
-      border-radius: 6px;
-      margin: 5px 0;
+    .row{
+      display:flex; gap:8px; margin-top:8px;
+    }
+    .comment-box input[type="text"]{
+      flex:1; border:1px solid #cfd8dc; border-radius:10px; padding:8px; background:#ffffff;
+    }
+    .btn{
+      position:relative; overflow:hidden;
+      background: var(--primary); color:#fff; border:none; padding:10px 16px;
+      border-radius:10px; cursor:pointer; font-weight:700;
+      box-shadow: 0 6px 16px #00bcd444;
+      transition: transform .15s ease, background .2s ease;
+    }
+    .btn:hover{ background: var(--primary-dark); transform: translateY(-1px) }
+    .btn:active{ transform: translateY(0) }
+    .btn::after{
+      content:""; position:absolute; inset:0; border-radius:inherit; opacity:0;
+      background: radial-gradient(circle, #fff6 10%, #fff0 11%);
+      transform: scale(0); transition: transform .5s ease, opacity .5s ease;
+    }
+    .btn.ripple::after{ opacity:1; transform: scale(4) }
+
+    .comments-list{ margin-top:10px; display:grid; gap:6px }
+    .comment-item{
+      background:#e0f7fa; color:#00363a; border:1px solid #b2ebf2;
+      border-radius:10px; padding:8px 10px; display:flex; justify-content:space-between; align-items:center;
+    }
+    .comment-meta{ font-size:12px; color:#006064; margin-left:8px }
+    .comment-text{ flex:1 }
+
+    .pill{
+      display:inline-block; margin-top:6px; color:#006064; background:#b2ebf2;
+      border-radius:999px; padding:4px 10px; font-size:12px;
     }
 
-    footer {
-      background: #00695c;
-      color: white;
-      text-align: center;
-      padding: 20px;
-      margin-top: 40px;
+    /* فوتر */
+    footer{
+      background: linear-gradient(90deg, #00bcd4, #7c4dff);
+      color:#fff; text-align:center; padding:22px; margin-top:40px;
+      box-shadow: 0 -8px 20px rgba(0,0,0,.15);
     }
 
-    /* Chatbox styles */
-    .chatbox {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      width: 300px;
-      max-height: 400px;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      font-size: 14px;
+    /* چت‌باکس شناور با ذخیره پیام‌ها */
+    .chat-toggle{
+      position:fixed; bottom:20px; left:20px; z-index:1001;
+      background: var(--accent); color:#fff; border:none; padding:12px 16px;
+      border-radius:999px; cursor:pointer; font-weight:700; box-shadow:0 8px 20px #ff408144;
     }
-    .chat-header {
-      background: #00796b;
-      color: white;
-      padding: 10px;
-      text-align: center;
-      font-weight: bold;
+    .chatbox{
+      position:fixed; bottom:80px; left:20px; width:320px; max-height:460px; z-index:1000;
+      display:none; flex-direction:column; overflow:hidden;
+      background:#ffffffee; backdrop-filter: blur(8px);
+      border:1px solid #ffffff66; border-radius:14px; box-shadow:0 16px 40px rgba(0,0,0,.2);
     }
-    .chat-messages {
-      flex: 1;
-      padding: 10px;
-      overflow-y: auto;
-      background: #f9f9f9;
+    .chat-header{
+      background: linear-gradient(90deg, #7c4dff, #00bcd4);
+      color:#fff; padding:10px; text-align:center; font-weight:700;
     }
-    .chat-messages p {
-      background: #e0f2f1;
-      padding: 6px 10px;
-      border-radius: 6px;
-      margin: 5px 0;
+    .chat-messages{
+      flex:1; padding:10px; overflow-y:auto; background:#f7faff;
+      display:grid; gap:6px;
     }
-    .chat-input {
-      display: flex;
-      border-top: 1px solid #ccc;
+    .bubble{
+      background:#e8f5e9; border:1px solid #c8e6c9; color:#1b5e20;
+      border-radius:12px; padding:8px 10px;
     }
-    .chat-input input {
-      flex: 1;
-      border: none;
-      padding: 10px;
-      font-family: inherit;
-    }
-    .chat-input button {
-      background: #00796b;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      cursor: pointer;
-    }
-    .chat-input button:hover {
-      background: #004d40;
-    }
+    .chat-input{ display:flex; border-top:1px solid #ddd }
+    .chat-input input{ flex:1; border:none; padding:10px; background:#fff }
+    .chat-input button{ border:none; background:var(--primary); color:#fff; padding:10px 14px; cursor:pointer }
+    .chat-input button:hover{ background:var(--primary-dark) }
+
+    /* اسکرول‌بار لطیف */
+    ::-webkit-scrollbar{ width:10px; height:10px }
+    ::-webkit-scrollbar-track{ background:#e0f2f1 }
+    ::-webkit-scrollbar-thumb{ background:#80deea; border-radius:999px }
+    ::-webkit-scrollbar-thumb:hover{ background:#4dd0e1 }
   </style>
 </head>
 <body>
@@ -185,52 +181,64 @@
 </nav>
 
 <header>
-  <h1>معرفی پزشکان برتر</h1>
-  <p>با طراحی مدرن، بخش نظرات و پشتیبانی آنلاین</p>
+  <h1>معرفی پزشکان برتر شیراز و ساری</h1>
+  <p>رنگ‌های روشن، افکت‌های جذاب، نظرات ذخیره‌شده و پشتیبانی آنلاین</p>
 </header>
 
 <div class="container" id="doctors">
   <!-- Doctor 1 -->
-  <div class="doctor-card">
+  <div class="doctor-card" data-id="doc-amin">
     <img src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png" alt="دکتر امینی">
     <div class="doctor-info">
       <h2>دکتر امینی</h2>
       <p>متخصص قلب و عروق - شیراز</p>
-      <p>شماره تماس: 0912xxxxxxx</p>
+      <span class="pill">وقت‌دهی: همه‌روزه</span>
     </div>
     <div class="comment-box">
+      <input type="text" placeholder="نام شما">
       <textarea placeholder="نظر خود را بنویسید..."></textarea>
-      <button onclick="addComment(this)">ارسال نظر</button>
+      <div class="row">
+        <button class="btn" onclick="handleRipple(this); addComment(this)">ارسال نظر</button>
+        <button class="btn" style="background:#9c27b0" onclick="handleRipple(this); clearComments(this)">پاک‌کردن نظرات</button>
+      </div>
       <div class="comments-list"></div>
     </div>
   </div>
 
   <!-- Doctor 2 -->
-  <div class="doctor-card">
+  <div class="doctor-card" data-id="doc-rahimi">
     <img src="https://cdn-icons-png.flaticon.com/512/2922/2922656.png" alt="دکتر رحیمی">
     <div class="doctor-info">
       <h2>دکتر رحیمی</h2>
       <p>جراح مغز و اعصاب - ساری</p>
-      <p>شماره تماس: 0935xxxxxxx</p>
+      <span class="pill">مشاوره آنلاین</span>
     </div>
     <div class="comment-box">
+      <input type="text" placeholder="نام شما">
       <textarea placeholder="نظر خود را بنویسید..."></textarea>
-      <button onclick="addComment(this)">ارسال نظر</button>
+      <div class="row">
+        <button class="btn" onclick="handleRipple(this); addComment(this)">ارسال نظر</button>
+        <button class="btn" style="background:#9c27b0" onclick="handleRipple(this); clearComments(this)">پاک‌کردن نظرات</button>
+      </div>
       <div class="comments-list"></div>
     </div>
   </div>
 
   <!-- Doctor 3 -->
-  <div class="doctor-card">
+  <div class="doctor-card" data-id="doc-kazemi">
     <img src="https://cdn-icons-png.flaticon.com/512/2922/2922688.png" alt="دکتر کاظمی">
     <div class="doctor-info">
       <h2>دکتر کاظمی</h2>
       <p>متخصص داخلی - تهران</p>
-      <p>شماره تماس: 0913xxxxxxx</p>
+      <span class="pill">پذیرش فوری</span>
     </div>
     <div class="comment-box">
+      <input type="text" placeholder="نام شما">
       <textarea placeholder="نظر خود را بنویسید..."></textarea>
-      <button onclick="addComment(this)">ارسال نظر</button>
+      <div class="row">
+        <button class="btn" onclick="handleRipple(this); addComment(this)">ارسال نظر</button>
+        <button class="btn" style="background:#9c27b0" onclick="handleRipple(this); clearComments(this)">پاک‌کردن نظرات</button>
+      </div>
       <div class="comments-list"></div>
     </div>
   </div>
@@ -240,7 +248,8 @@
   <p>تماس با ما: info@example.com | تلفن: 021-xxxxxxx</p>
 </footer>
 
-<!-- Chatbox -->
+<!-- Chat floating -->
+<button class="chat-toggle" onclick="toggleChat()">پشتیبانی آنلاین</button>
 <div class="chatbox" id="chatbox">
   <div class="chat-header">پشتیبانی آنلاین</div>
   <div class="chat-messages" id="chat-messages"></div>
@@ -251,5 +260,136 @@
 </div>
 
 <script>
-  // بخش کامنت
-  function addComment(button)
+  /* Ripple effect for buttons */
+  function handleRipple(btn){
+    btn.classList.remove('ripple');
+    void btn.offsetWidth; /* reflow for restart */
+    btn.classList.add('ripple');
+  }
+
+  /* Scroll reveal for doctor cards */
+  const observer = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.classList.add('revealed'); observer.unobserve(e.target) }
+    });
+  },{ threshold: .15 });
+  document.querySelectorAll('.doctor-card').forEach(c=>observer.observe(c));
+
+  /* Utilities for localStorage */
+  function lsGet(key, fallback){ try{ const v = localStorage.getItem(key); return v? JSON.parse(v): fallback }catch(e){ return fallback } }
+  function lsSet(key, value){ try{ localStorage.setItem(key, JSON.stringify(value)) }catch(e){} }
+
+  /* Comments: save per doctor */
+  function addComment(button){
+    const card = button.closest('.doctor-card');
+    const id = card.dataset.id;
+    const box = button.closest('.comment-box');
+    const nameInput = box.querySelector('input[type="text"]');
+    const textarea = box.querySelector('textarea');
+    const list = box.querySelector('.comments-list');
+
+    const name = (nameInput.value || 'کاربر').trim();
+    const text = (textarea.value || '').trim();
+    if(!text) return;
+
+    const item = { name, text, ts: Date.now() };
+    const key = 'comments:' + id;
+    const current = lsGet(key, []);
+    current.push(item);
+    lsSet(key, current);
+
+    renderComment(list, item);
+    nameInput.value = '';
+    textarea.value = '';
+  }
+
+  function clearComments(button){
+    const card = button.closest('.doctor-card');
+    const id = card.dataset.id;
+    const box = button.closest('.comment-box');
+    const list = box.querySelector('.comments-list');
+    lsSet('comments:'+id, []);
+    list.innerHTML = '';
+  }
+
+  function renderComment(list, item){
+    const p = document.createElement('div');
+    p.className = 'comment-item';
+    const date = new Date(item.ts);
+    const meta = `${date.toLocaleDateString('fa-IR')} ${date.toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'})}`;
+    p.innerHTML = `
+      <span class="comment-text"><strong>${escapeHTML(item.name)}:</strong> ${escapeHTML(item.text)}</span>
+      <span class="comment-meta">${meta}</span>
+    `;
+    list.appendChild(p);
+  }
+
+  function escapeHTML(s){
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* Load comments on startup */
+  document.querySelectorAll('.doctor-card').forEach(card=>{
+    const id = card.dataset.id;
+    const list = card.querySelector('.comments-list');
+    const stored = lsGet('comments:'+id, []);
+    stored.forEach(item=>renderComment(list, item));
+  });
+
+  /* Chatbox with localStorage persistence */
+  const CHAT_KEY = 'chat:messages';
+  const chatBox = document.getElementById('chatbox');
+  const chatMessages = document.getElementById('chat-messages');
+  const chatInput = document.getElementById('chat-input');
+
+  function toggleChat(){
+    const visible = chatBox.style.display === 'flex';
+    chatBox.style.display = visible ? 'none' : 'flex';
+    if(!visible){ loadChat() }
+  }
+
+  function loadChat(){
+    chatMessages.innerHTML = '';
+    const msgs = lsGet(CHAT_KEY, []);
+    msgs.forEach(m=>appendBubble(m));
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function sendMessage(){
+    const text = chatInput.value.trim();
+    if(!text) return;
+    const msg = { text, ts: Date.now(), from: 'user' };
+    const msgs = lsGet(CHAT_KEY, []);
+    msgs.push(msg);
+    lsSet(CHAT_KEY, msgs);
+    appendBubble(msg);
+    chatInput.value = '';
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // پاسخ خودکار ساده
+    setTimeout(()=>{
+      const reply = { text:'پشتیبانی: پیام شما دریافت شد ✅', ts: Date.now(), from:'support' };
+      const all = lsGet(CHAT_KEY, []);
+      all.push(reply); lsSet(CHAT_KEY, all);
+      appendBubble(reply);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }, 600);
+  }
+
+  function appendBubble(msg){
+    const d = new Date(msg.ts);
+    const meta = `${d.toLocaleDateString('fa-IR')} ${d.toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'})}`;
+    const div = document.createElement('div');
+    div.className = 'bubble';
+    div.style.background = msg.from==='support' ? '#fff3e0' : '#e8f5e9';
+    div.style.border = msg.from==='support' ? '1px solid #ffe0b2' : '1px solid #c8e6c9';
+    div.textContent = `${msg.text} — ${meta}`;
+    chatMessages.appendChild(div);
+  }
+
+  /* Open chat on load (optional) */
+  // toggleChat();
+</script>
+
+</body>
+</html>
