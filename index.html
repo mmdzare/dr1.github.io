@@ -1,81 +1,98 @@
-<style>
-  body {
-    font-family: 'Tahoma', sans-serif;
-    margin: 0;
-    background: linear-gradient(135deg, #e0f7fa, #ffffff);
-  }
-  nav {
-    background: #00695c;
-    color: white;
-    padding: 15px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  }
-  nav a {
-    color: white;
-    margin: 0 15px;
-    text-decoration: none;
-    font-weight: bold;
-    transition: color 0.3s;
-  }
-  nav a:hover { color: #ffeb3b; }
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>معرفی پزشکان برتر</title>
+  <style>
+    body {
+      font-family: 'Tahoma', sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #e0f7fa, #ffffff);
+    }
+    nav {
+      background: #00695c;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: color 0.3s;
+    }
+    nav a:hover { color: #ffeb3b; }
 
-  header {
-    text-align: center;
-    padding: 60px 20px;
-    background: url('https://cdn.pixabay.com/photo/2017/08/06/00/47/people-2587313_1280.jpg') no-repeat center/cover;
-    color: white;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.6);
-  }
+    header {
+      text-align: center;
+      padding: 60px 20px;
+      background: #004d40;
+      color: white;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    }
 
-  .container {
-    max-width: 1100px;
-    margin: auto;
-    padding: 40px 20px;
-    display: grid;
-    grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
-    gap: 30px;
-  }
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 40px 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+      gap: 30px;
+    }
 
-  .doctor-card {
-    background: white;
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.15);
-    transform: translateY(0);
-    transition: transform 0.4s ease, box-shadow 0.4s ease;
-    position: relative;
-  }
-  .doctor-card:hover {
-    transform: translateY(-10px) scale(1.03);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.25);
-  }
-  .doctor-card img {
-    width: 100%;
-    height: 220px;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-  }
-  .doctor-card:hover img {
-    transform: scale(1.1);
-  }
-  .doctor-info {
-    padding: 20px;
-    animation: fadeIn 0.8s ease;
-  }
-  .doctor-info h2 {
-    margin: 0;
-    color: #00796b;
-  }
-  .doctor-info p {
-    margin: 5px 0;
-    color: #555;
-  }
-  @keyframes fadeIn {
-    from {opacity: 0; transform: translateY(20px);}
-    to {opacity: 1; transform: translateY(0);}
-  }
-</style>
+    .doctor-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+      transform: translateY(0);
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+      position: relative;
+    }
+    .doctor-card:hover {
+      transform: translateY(-10px) scale(1.03);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+    .doctor-card img {
+      width: 100%;
+      height: 200px;
+      object-fit: contain;
+      background: #f5f5f5;
+      padding: 20px;
+      transition: transform 0.5s ease;
+    }
+    .doctor-card:hover img {
+      transform: scale(1.1);
+    }
+    .doctor-info {
+      padding: 20px;
+      animation: fadeIn 0.8s ease;
+    }
+    .doctor-info h2 {
+      margin: 0;
+      color: #00796b;
+    }
+    .doctor-info p {
+      margin: 5px 0;
+      color: #555;
+    }
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    footer {
+      background: #00695c;
+      color: white;
+      text-align: center;
+      padding: 20px;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
 
 <nav>
   <a href="#doctors">معرفی پزشکان</a>
@@ -83,13 +100,13 @@
 </nav>
 
 <header>
-  <h1>معرفی پزشکان برتر شیراز و ساری</h1>
-  <p>با طراحی مدرن و افکت‌های جذاب</p>
+  <h1>معرفی پزشکان برتر</h1>
+  <p>با طراحی مدرن و آواتارهای مینیمال</p>
 </header>
 
 <div class="container" id="doctors">
   <div class="doctor-card">
-    <img src="https://cdn.pixabay.com/photo/2016/11/29/04/17/adult-1869421_1280.jpg" alt="دکتر امینی">
+    <img src="https://cdn-icons-png.flaticon.com/512/387/387561.png" alt="دکتر امینی">
     <div class="doctor-info">
       <h2>دکتر امینی</h2>
       <p>متخصص قلب و عروق - شیراز</p>
@@ -98,11 +115,27 @@
   </div>
 
   <div class="doctor-card">
-    <img src="https://cdn.pixabay.com/photo/2016/10/18/21/22/doctor-1751176_1280.jpg" alt="دکتر رحیمی">
+    <img src="https://cdn-icons-png.flaticon.com/512/387/387569.png" alt="دکتر رحیمی">
     <div class="doctor-info">
       <h2>دکتر رحیمی</h2>
       <p>جراح مغز و اعصاب - ساری</p>
       <p>شماره تماس: 0935xxxxxxx</p>
     </div>
   </div>
+
+  <div class="doctor-card">
+    <img src="https://cdn-icons-png.flaticon.com/512/387/387568.png" alt="دکتر کاظمی">
+    <div class="doctor-info">
+      <h2>دکتر کاظمی</h2>
+      <p>متخصص داخلی - تهران</p>
+      <p>شماره تماس: 0913xxxxxxx</p>
+    </div>
+  </div>
 </div>
+
+<footer id="contact">
+  <p>تماس با ما: info@example.com | تلفن: 021-xxxxxxx</p>
+</footer>
+
+</body>
+</html>
