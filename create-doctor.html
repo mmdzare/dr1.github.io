@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>ساخت پزشک جدید</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <h1>ساخت کارت پزشک</h1>
+    <p>مدیر می‌تواند پزشک جدید اضافه کند</p>
+  </header>
+
+  <div class="container">
+    <form id="doctor-form" class="doctor-card">
+      <input type="text" id="name" placeholder="نام پزشک" required>
+      <input type="text" id="specialty" placeholder="تخصص" required>
+      <input type="text" id="city" placeholder="شهر" required>
+      <input type="text" id="image_url" placeholder="لینک عکس (اختیاری)">
+      <button type="submit" class="btn">ثبت پزشک</button>
+    </form>
+    <div id="status" style="margin-top:1rem;"></div>
+  </div>
+
+  <script>
+    const client = supabase.createClient(
+      'https://lzfonyofgwfiwzsloqjp.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY'
+    );
+
+    const form = document.getElementById('doctor-form');
+    const status = document.getElementById('status');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const specialty = document.getElementById('specialty').value.trim();
+      const city = document.getElementById('city').value.trim();
+      const imageInput = document.getElementById('image_url').value.trim();
+      const image_url = imageInput || 'assets/img/avatar.jpg';
+
+      const { error } = await client.from('doctors').insert([
+        { name, specialty, city, image_url }
+      ]);
+
+      if (error) {
+        status.textContent = '❌ خطا در ثبت پزشک';
+        console.error(error.message);
+      } else {
+        status.textContent = '✅ پزشک با موفقیت ثبت شد';
+        form.reset();
+      }
+    });
+  </script>
+</body>
+</html>
