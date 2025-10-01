@@ -4,10 +4,8 @@ body {
   margin: 0;
   padding: 0;
   direction: rtl;
-  line-height: 1.6;
 }
 
-/* ناوبری */
 nav {
   background: #00bcd4;
   padding: 12px;
@@ -19,10 +17,8 @@ nav a {
   margin: 0 12px;
   text-decoration: none;
   font-weight: bold;
-  font-size: 16px;
 }
 
-/* هدر */
 header {
   text-align: center;
   padding: 40px 20px;
@@ -30,7 +26,6 @@ header {
   color: #fff;
 }
 
-/* کانتینر کارت‌ها */
 .container {
   display: flex;
   flex-wrap: wrap;
@@ -39,14 +34,13 @@ header {
   padding: 20px;
 }
 
-/* کارت پزشک */
 .doctor-card {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
   border-radius: 16px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, .15);
   overflow: hidden;
-  width: 300px;
+  width: 320px;
   transition: transform 0.3s ease;
 }
 
@@ -56,16 +50,23 @@ header {
 
 .doctor-card img {
   width: 100%;
-  height: auto;
-  max-height: 220px;
+  height: 200px;
   object-fit: cover;
 }
 
-.doctor-info {
-  padding: 16px;
+.doctor-info p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #444;
+}
+.doctor-info a {
+  color: #7c4dff;
+  text-decoration: none;
+}
+.doctor-info a:hover {
+  text-decoration: underline;
 }
 
-/* برچسب */
 .pill {
   display: inline-block;
   background: #00bcd4;
@@ -76,7 +77,6 @@ header {
   margin-top: 8px;
 }
 
-/* فرم نظر */
 .comment-box {
   padding: 16px;
   background: #f9f9f9;
@@ -86,11 +86,10 @@ header {
 .comment-box textarea {
   width: 100%;
   margin-bottom: 8px;
-  padding: 10px;
+  padding: 8px;
   border: 1px solid #ccc;
   border-radius: 6px;
   font-family: inherit;
-  font-size: 15px;
 }
 
 .comment-box .row {
@@ -103,17 +102,11 @@ header {
   background: #00bcd4;
   color: #fff;
   border: none;
-  padding: 10px;
+  padding: 8px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 15px;
 }
 
-.comment-box .btn:hover {
-  background: #0097a7;
-}
-
-/* لیست نظرات */
 .comments-list {
   margin-top: 12px;
 }
@@ -133,44 +126,79 @@ header {
   margin-top: 4px;
 }
 
-/* کنترل‌های صفحه‌بندی نظرات */
-.comments-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-top: 8px;
+.extra-box {
+  background: #f1f8e9;
+  padding: 8px;
+  margin-top: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
 }
 
-.pager-btn {
-  background: #00bcd4;
+.chat-toggle {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background: #7c4dff;
   color: #fff;
   border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border-radius: 999px;
   cursor: pointer;
-  font-size: 13px;
+  z-index: 999;
 }
 
-.pager-btn:disabled {
-  background: #b2ebf2;
+.chatbox {
+  position: fixed;
+  bottom: 80px;
+  left: 20px;
+  width: 300px;
+  max-height: 400px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .2);
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 999;
+}
+
+.chat-header {
+  background: #7c4dff;
   color: #fff;
-  cursor: not-allowed;
+  padding: 12px;
+  font-weight: bold;
 }
 
-.pager-info {
-  font-size: 13px;
-  color: #555;
+.chat-messages {
+  flex: 1;
+  padding: 12px;
+  overflow-y: auto;
+  font-size: 14px;
 }
 
-/* حالت‌های کمکی */
-.comments-list .loading,
-.comments-list .empty,
-.comments-list .error {
-  font-size: 13px;
-  color: #666;
-  text-align: center;
-  padding: 6px;
+.chat-input {
+  display: flex;
+  border-top: 1px solid #ccc;
+}
+
+.chat-input input {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  outline: none;
+}
+
+.chat-input button {
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.chat-input button:hover {
+  background: var(--primary-dark);
 }
 
 /* فوتر */
@@ -181,13 +209,44 @@ footer {
   padding: 22px;
   margin-top: 40px;
   box-shadow: 0 -8px 20px rgba(0, 0, 0, .15);
-  font-size: 14px;
+}
+@media (max-width: 768px) {
+  .doctor-card {
+    width: 100%;
+    max-width: 95%;
+  }
+  .doctor-card img {
+    max-height: 180px;
+  }
+}
+
+.rating {
+  direction: ltr;
+  display: inline-flex;
+  gap: 4px;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.rating span {
+  color: #ccc; /* پیش‌فرض خاکستری */
+  transition: transform 0.2s, color 0.2s;
+}
+
+.rating span:hover {
+  transform: scale(1.2);
+  color: #ffca28; /* طلایی روشن هنگام هاور */
+}
+
+.rating span.active {
+  color: #ffc107; /* طلایی پر شده */
+  text-shadow: 0 0 6px rgba(255, 193, 7, 0.7);
 }
 
 /* اسکرول‌بار لطیف */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -201,33 +260,4 @@ footer {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #4dd0e1;
-}
-
-/* 📱 ریسپانسیو موبایل */
-@media (max-width: 768px) {
-  nav a {
-    display: inline-block;
-    margin: 6px;
-    font-size: 14px;
-  }
-
-  .doctor-card {
-    width: 100%;
-    max-width: 95%;
-  }
-
-  .doctor-card img {
-    max-height: 180px;
-  }
-
-  .comment-box input,
-  .comment-box textarea,
-  .comment-box .btn {
-    font-size: 14px;
-  }
-
-  footer {
-    font-size: 12px;
-    padding: 16px;
-  }
 }
