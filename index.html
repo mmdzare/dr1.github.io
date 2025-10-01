@@ -8,38 +8,43 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <!-- لینک ورود به پنل مدیریت -->
   <div style="text-align: left; margin-bottom: 1rem;">
     <a href="comments.html" class="admin-link">پنل مدیریت</a>
   </div>
 
+  <!-- منو -->
   <nav>
     <a href="#doctors">معرفی پزشکان</a>
     <a href="#contact">تماس با ما</a>
   </nav>
 
+  <!-- هدر -->
   <header>
     <h1>معرفی پزشکان برتر</h1>
     <p>کارت‌های داینامیک از Supabase + نظرات و پشتیبانی آنلاین</p>
   </header>
 
+  <!-- کارت پزشکان -->
   <div class="container" id="doctors">
     <!-- کارت‌ها از Supabase لود می‌شن -->
   </div>
 
+  <!-- فوتر -->
   <footer id="contact">
     <p>تماس با ما: info@example.com | تلفن: 021-xxxxxxx</p>
   </footer>
 
-  <button class="chat-toggle" onclick="toggleChat()">پشتیبانی آنلاین</button>
-  <div class="chatbox" id="chatbox">
-    <div class="chat-header">پشتیبانی آنلاین</div>
-    <div class="chat-messages" id="chat-messages"></div>
-    <div class="chat-input">
-      <input type="text" id="chat-input" placeholder="پیام خود را بنویسید...">
-      <button onclick="sendMessage()">ارسال</button>
-    </div>
+  <!-- دکمه واتساپ ثابت پایین صفحه -->
+  <div style="position:fixed; bottom:20px; left:20px; z-index:999;">
+    <a href="https://wa.me/989362951509" target="_blank">
+      <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" 
+           alt="پشتیبانی واتساپ" width="60" height="60"
+           style="border-radius:50%; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+    </a>
   </div>
 
+  <!-- اسکریپت اصلی -->
   <script src="assets/js/script.js"></script>
 </body>
 </html>
