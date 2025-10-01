@@ -75,6 +75,7 @@ header::after {
   padding: 16px;
   width: 280px;
   animation: fadeUp .6s ease both;
+  font-family: Vazirmatn, sans-serif;
 }
 .doctor-card:hover {
   transform: translateY(-6px) scale(1.02);
@@ -93,17 +94,30 @@ header::after {
 .doctor-card img:hover {
   box-shadow: 0 0 12px rgba(124,77,255,.5);
 }
+
+/* اطلاعات پزشک */
 .doctor-info p {
   margin: 6px 0;
   font-size: 14px;
   color: #444;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .doctor-info a {
   color: #2563eb;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 600;
+  transition: color .3s;
 }
-.doctor-info a:hover { text-decoration: underline; }
+.doctor-info a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+.doctor-card i {
+  color: #6366f1;
+  font-size: 16px;
+}
 
 /* برچسب */
 .pill {
@@ -114,6 +128,37 @@ header::after {
   border-radius: 999px;
   font-size: 12px;
   margin-top: 8px;
+}
+
+/* جعبه توضیحات */
+.extra-box {
+  background: #ecfdf5;
+  padding: 8px;
+  margin-top: 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #065f46;
+}
+
+/* امتیازدهی */
+.rating {
+  margin-top: 12px;
+  direction: ltr;
+  text-align: left;
+}
+.rating span {
+  font-size: 20px;
+  cursor: pointer;
+  color: #ddd;
+  transition: color .2s;
+}
+.rating span.active {
+  color: #facc15;
+}
+.rating-info {
+  font-size: 13px;
+  margin-top: 6px;
+  color: #555;
 }
 
 /* بخش نظرات */
@@ -142,27 +187,31 @@ header::after {
   box-shadow: 0 0 0 3px rgba(59,130,246,.2);
   outline: none;
 }
-.comment-box .btn {
+.comment-box .comment-submit {
   background: linear-gradient(135deg, #3b82f6, #7c4dff);
   color: #fff;
   border: none;
-  padding: 10px 22px;
-  border-radius: 999px;   /* بیضی کامل */
+  padding: 12px 28px;
+  border-radius: 50px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
   letter-spacing: .5px;
   transition: transform .2s, box-shadow .3s, background .3s;
+  display: inline-block;
 }
-.comment-box .btn:hover {
+.comment-box .comment-submit:hover {
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 6px 16px rgba(124,77,255,.35);
+  background: linear-gradient(135deg, #2563eb, #6d28d9);
 }
-.comment-box .btn:active {
-  transform: scale(.96);
+.comment-box .comment-submit:active {
+  transform: scale(.95);
   box-shadow: none;
 }
-.comments-list { margin-top: 16px; }
+.comments-list {
+  margin-top: 16px;
+}
 .comment-item {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -185,31 +234,7 @@ header::after {
   display: block;
 }
 
-.comment-box .comment-submit {
-  background: linear-gradient(135deg, #3b82f6, #7c4dff);
-  color: #fff;
-  border: none;
-  padding: 12px 28px;
-  border-radius: 50px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: .5px;
-  transition: transform .2s, box-shadow .3s, background .3s;
-  display: inline-block;
-}
-
-.comment-box .comment-submit:hover {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 16px rgba(124,77,255,.35);
-  background: linear-gradient(135deg, #2563eb, #6d28d9);
-}
-
-.comment-box .comment-submit:active {
-  transform: scale(.95);
-  box-shadow: none;
-}
-
+/* کنترل صفحه‌بندی نظرات */
 .comments-controls {
   display: flex;
   justify-content: center;
@@ -217,40 +242,27 @@ header::after {
   gap: 12px;
   margin-top: 14px;
 }
-
 .pager-btn {
   background: linear-gradient(135deg, #3b82f6, #7c4dff);
   color: #fff;
   border: none;
   padding: 8px 20px;
-  border-radius: 50px;   /* بیضی کامل */
+  border-radius: 50px;
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
   transition: transform .2s, box-shadow .3s, background .3s;
 }
-
 .pager-btn:hover:not(:disabled) {
   transform: translateY(-2px) scale(1.05);
   box-shadow: 0 6px 16px rgba(124,77,255,.35);
   background: linear-gradient(135deg, #2563eb, #6d28d9);
 }
-
 .pager-btn:disabled {
   background: #d1d5db;
   color: #6b7280;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-/* جعبه توضیحات */
-.extra-box {
-  background: #ecfdf5;
-  padding: 8px;
-  margin-top: 8px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #065f46;
 }
 
 /* چت آنلاین */
@@ -268,7 +280,9 @@ header::after {
   box-shadow: 0 6px 16px rgba(0,0,0,.2);
   transition: transform .2s;
 }
-.chat-toggle:hover { transform: scale(1.05); }
+.chat-toggle:hover {
+  transform: scale(1.05);
+}
 .chatbox {
   position: fixed;
   bottom: 80px;
@@ -315,28 +329,11 @@ header::after {
 }
 @keyframes bubble {
   from { opacity: 0; transform: scale(.8); }
-  to { opacity: 1; transform: scale(1); }
-}
-.chat-input {
-  display: flex;
-  border-top: 1px solid #ccc;
-}
-.chat-input input {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  outline: none;
-}
-.chat-input button {
-  border: none;
-  background: #2563eb;
-  color: #fff;
-  padding: 10px 14px;
-  cursor: pointer;
-  transition: background .2s;
-}
-.chat-input button:hover { background: #1d4ed8; }
+  to { opacity: 1; transform: scale
 
+
+
+      
 /* فوتر */
 footer {
   background: linear-gradient(90deg, #2563eb, #7c4dff);
