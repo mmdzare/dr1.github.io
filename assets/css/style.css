@@ -233,6 +233,28 @@ header::after {
   margin-top: 6px;
   display: block;
 }
+.comment-preview {
+  max-height: 4.5em;
+  overflow: hidden;
+  transition: max-height .3s ease;
+}
+.comment-full {
+  margin-top: 6px;
+  display: none;
+  line-height: 1.8;
+}
+.comment-full.visible {
+  display: block;
+}
+.expand-btn {
+  background: none;
+  border: none;
+  color: #f59e0b;
+  cursor: pointer;
+  font-size: 13px;
+  margin-top: 6px;
+  text-decoration: underline;
+}
 
 /* کنترل صفحه‌بندی نظرات */
 .comments-controls {
