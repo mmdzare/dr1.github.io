@@ -133,6 +133,46 @@ header {
   margin-top: 4px;
 }
 
+/* کنترل‌های صفحه‌بندی نظرات */
+.comments-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.pager-btn {
+  background: #00bcd4;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pager-btn:disabled {
+  background: #b2ebf2;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+.pager-info {
+  font-size: 13px;
+  color: #555;
+}
+
+/* حالت‌های کمکی */
+.comments-list .loading,
+.comments-list .empty,
+.comments-list .error {
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  padding: 6px;
+}
+
 /* فوتر */
 footer {
   background: linear-gradient(90deg, #00bcd4, #7c4dff);
