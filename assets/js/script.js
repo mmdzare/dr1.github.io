@@ -1,11 +1,14 @@
-<!-- اول مطمئن شو این اسکریپت Supabase قبل از فایل خودت لود بشه -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
 // اتصال به Supabase
 const SUPABASE_URL = 'https://lzfonyofgwfiwzsloqjp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY';
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY';
 
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// لینک آواتار پیش‌فرض پزشکی (ثابت و سبک)
+function getDefaultAvatar() {
+  return 'https://cdn-icons-png.flaticon.com/512/387/387561.png';
+}
 
 // لود پزشک‌ها
 async function loadDoctors() {
@@ -28,13 +31,14 @@ async function loadDoctors() {
 
     container.innerHTML = '';
 
-    data.forEach(doc => {
+    data.forEach((doc) => {
       const card = document.createElement('div');
       card.className = 'doctor-card';
 
-      const imgSrc = (doc.image_url && doc.image_url.trim())
-        ? doc.image_url
-        : 'assets/img/avatar-default.png';
+      const imgSrc =
+        doc.image_url && doc.image_url.trim()
+          ? doc.image_url
+          : getDefaultAvatar();
 
       card.innerHTML = `
         <img src="${imgSrc}" alt="${doc.name || ''}">
@@ -77,8 +81,10 @@ async function loadApprovedComments() {
 
       if (error) throw error;
 
-      (data || []).forEach(row => {
-        const ts = row.created_at ? new Date(row.created_at).getTime() : Date.now();
+      (data || []).forEach((row) => {
+        const ts = row.created_at
+          ? new Date(row.created_at).getTime()
+          : Date.now();
         renderComment(list, { name: row.user_name, text: row.comment, ts });
       });
     } catch (err) {
@@ -103,7 +109,7 @@ async function addComment(button) {
 
   try {
     const { error } = await client.from('comments').insert([
-      { user_name, doctor_name, comment, approved: null }
+      { user_name, doctor_name, comment, approved: null },
     ]);
 
     if (error) throw error;
@@ -123,7 +129,10 @@ function renderComment(list, item) {
   const p = document.createElement('div');
   p.className = 'comment-item';
   const date = new Date(item.ts);
-  const meta = `${date.toLocaleDateString('fa-IR')} ${date.toLocaleTimeString('fa-IR',{hour:'2-digit',minute:'2-digit'})}`;
+  const meta = `${date.toLocaleDateString('fa-IR')} ${date.toLocaleTimeString(
+    'fa-IR',
+    { hour: '2-digit', minute: '2-digit' }
+  )}`;
   p.innerHTML = `<strong>${item.name}:</strong> ${item.text} <span>${meta}</span>`;
   list.appendChild(p);
 }
@@ -132,4 +141,3 @@ function renderComment(list, item) {
 document.addEventListener('DOMContentLoaded', () => {
   loadDoctors();
 });
-</script>
