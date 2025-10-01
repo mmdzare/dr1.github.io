@@ -283,10 +283,23 @@ function renderComment(list, item) {
     { hour: '2-digit', minute: '2-digit' }
   )}`;
 
-  p.innerHTML = `
-    <strong>${item.name}:</strong> ${item.text}
-    <span class="comment-meta">${meta}</span>
-  `;
+  const words = item.text.trim().split(/\s+/);
+  if (words.length > 15) {
+    const preview = words.slice(0, 15).join(' ') + '...';
+    p.innerHTML = `
+      <strong>${item.name}:</strong>
+      <div class="comment-preview">${preview}</div>
+      <button class="expand-btn" onclick="toggleComment(this)">ادامه نظر</button>
+      <div class="comment-full hidden">${item.text}</div>
+      <span class="comment-meta">${meta}</span>
+    `;
+  } else {
+    p.innerHTML = `
+      <strong>${item.name}:</strong> ${item.text}
+      <span class="comment-meta">${meta}</span>
+    `;
+  }
+
   list.appendChild(p);
 }
 
@@ -294,3 +307,10 @@ function renderComment(list, item) {
 document.addEventListener('DOMContentLoaded', () => {
   loadDoctors();
 });
+
+// 📌 تابع باز و بسته کردن نظر طولانی
+function toggleComment(btn) {
+  const full = btn.nextElementSibling;
+  full.classList.toggle('visible');
+  btn.textContent = full.classList.contains('visible') ? 'بستن نظر' : 'ادامه نظر';
+}
