@@ -64,7 +64,7 @@ async function loadDoctors() {
         <div class="comment-box">
           <input type="text" placeholder="نام شما">
           <textarea placeholder="نظر خود را بنویسید..."></textarea>
-          <button onclick="addComment(this)">ارسال نظر</button>
+          <button class="comment-submit" onclick="addComment(this)">ارسال نظر</button>
           <div class="comments-list"></div>
           <div class="comments-controls">
             <button class="pager-btn prev">قبلی</button>
