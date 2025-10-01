@@ -14,7 +14,6 @@
       padding: 0;
       direction: rtl;
     }
-
     header {
       text-align: center;
       padding: 40px 20px;
@@ -22,13 +21,11 @@
       color: #fff;
       box-shadow: 0 8px 20px rgba(0,0,0,.2);
     }
-
     .container {
       display: flex;
       justify-content: center;
       padding: 40px 20px;
     }
-
     form.doctor-card {
       background: rgba(255,255,255,0.6);
       backdrop-filter: blur(12px);
@@ -39,12 +36,10 @@
       max-width: 400px;
       animation: fadeIn 0.8s ease;
     }
-
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     form input {
       width: 100%;
       padding: 10px;
@@ -55,12 +50,10 @@
       font-size: 15px;
       transition: border-color 0.3s ease;
     }
-
     form input:focus {
       border-color: #7c4dff;
       outline: none;
     }
-
     .btn {
       width: 100%;
       padding: 12px;
@@ -73,7 +66,6 @@
       position: relative;
       overflow: hidden;
     }
-
     .btn::after {
       content: "";
       position: absolute;
@@ -84,11 +76,9 @@
       border-radius: 8px;
       transition: transform 0.3s ease;
     }
-
     .btn:active::after {
       transform: scale(1);
     }
-
     #status {
       text-align: center;
       font-size: 16px;
@@ -109,7 +99,7 @@
       <input type="text" id="name" placeholder="نام پزشک" required>
       <input type="text" id="specialty" placeholder="تخصص" required>
       <input type="text" id="city" placeholder="شهر" required>
-      <input type="text" id="image_url" placeholder="لینک عکس (اختیاری)">
+      <input type="url" id="image_url" placeholder="لینک عکس (اختیاری)">
       <button type="submit" class="btn">ثبت پزشک</button>
     </form>
   </div>
@@ -131,7 +121,9 @@
       const specialty = document.getElementById('specialty').value.trim();
       const city = document.getElementById('city').value.trim();
       const imageInput = document.getElementById('image_url').value.trim();
-      const image_url = imageInput || 'assets/img/avatar.jpg';
+
+      // اگر خالی بود → null ذخیره می‌شود
+      const image_url = imageInput || null;
 
       const { error } = await client.from('doctors').insert([
         { name, specialty, city, image_url }
