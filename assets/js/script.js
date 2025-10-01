@@ -34,54 +34,51 @@ async function loadDoctors() {
     container.innerHTML = '';
 
     for (const doc of data) {
-      const card = document.createElement('div');
-      card.className = 'doctor-card';
-      const imgSrc = (doc.image_url && doc.image_url.trim()) ? doc.image_url : getDefaultDoctorAvatar();
+  const card = document.createElement('div');
+  card.className = 'doctor-card';
+  const imgSrc = (doc.image_url && doc.image_url.trim()) ? doc.image_url : getDefaultDoctorAvatar();
 
-      card.innerHTML = `
-        <img src="${imgSrc}" alt="${doc.name || ''}" loading="lazy">
-        <div class="doctor-info">
-          <h2>${doc.name || 'بدون نام'}</h2>
-          <p>${doc.specialty || ''} - ${doc.city || ''}</p>
-          ${doc.phone ? `<p><strong>📞 تلفن:</strong> ${doc.phone}</p>` : ''}
-          ${doc.page_url ? `<p><strong>📷 اینستاگرام:</strong> <a href="https://instagram.com/${doc.page_url}" target="_blank">@${doc.page_url}</a></p>` : ''}
-          ${doc.address ? `<p><strong>📍 آدرس مطب:</strong> ${doc.address}</p>` : ''}
-          ${doc.work_hours ? `<p><strong>⏰ ساعات کاری:</strong> ${doc.work_hours}</p>` : ''}
-          ${doc.extra_info ? `<div class="extra-box"><strong>ℹ️ توضیحات:</strong> ${doc.extra_info}</div>` : ''}
+  card.innerHTML = `
+    <img src="${imgSrc}" alt="${doc.name || ''}" loading="lazy">
+    <div class="doctor-info">
+      <h2>${doc.name || 'بدون نام'}</h2>
+      <p><i class="fa-solid fa-user-doctor"></i> ${doc.specialty || ''} - ${doc.city || ''}</p>
+      ${doc.phone ? `<p><i class="fa-solid fa-phone"></i> ${doc.phone}</p>` : ''}
+      ${doc.page_url ? `<p><i class="fa-brands fa-instagram"></i> <a href="https://instagram.com/${doc.page_url}" target="_blank">@${doc.page_url}</a></p>` : ''}
+      ${doc.address ? `<p><i class="fa-solid fa-location-dot"></i> ${doc.address}</p>` : ''}
+      ${doc.work_hours ? `<p><i class="fa-regular fa-clock"></i> ${doc.work_hours}</p>` : ''}
+      ${doc.extra_info ? `<div class="extra-box"><i class="fa-solid fa-circle-info"></i> ${doc.extra_info}</div>` : ''}
 
-          <!-- ⭐ بخش امتیازدهی -->
-          <div class="rating" data-doctor="${doc.id}">
-            <span data-value="5">★</span>
-            <span data-value="4">★</span>
-            <span data-value="3">★</span>
-            <span data-value="2">★</span>
-            <span data-value="1">★</span>
-          </div>
-          <p class="rating-info">میانگین امتیاز: در حال بارگذاری...</p>
-        </div>
+      <div class="rating" data-doctor="${doc.id}">
+        <span data-value="5">★</span>
+        <span data-value="4">★</span>
+        <span data-value="3">★</span>
+        <span data-value="2">★</span>
+        <span data-value="1">★</span>
+      </div>
+      <p class="rating-info">میانگین امتیاز: در حال بارگذاری...</p>
+    </div>
 
-        <!-- 💬 بخش نظرات -->
-        <div class="comment-box">
-          <input type="text" placeholder="نام شما">
-          <textarea placeholder="نظر خود را بنویسید..."></textarea>
-          <button class="comment-submit" onclick="addComment(this)">ارسال نظر</button>
-          <div class="comments-list"></div>
-          <div class="comments-controls">
-            <button class="pager-btn prev">قبلی</button>
-            <span class="pager-info">صفحه 1</span>
-            <button class="pager-btn next">بعدی</button>
-          </div>
-        </div>
-      `;
+    <div class="comment-box">
+      <input type="text" placeholder="نام شما">
+      <textarea placeholder="نظر خود را بنویسید..."></textarea>
+      <button class="comment-submit" onclick="addComment(this)">ارسال نظر</button>
+      <div class="comments-list"></div>
+      <div class="comments-controls">
+        <button class="pager-btn prev">قبلی</button>
+        <span class="pager-info">صفحه 1</span>
+        <button class="pager-btn next">بعدی</button>
+      </div>
+    </div>
+  `;
 
-      container.appendChild(card);
+  container.appendChild(card);
 
-      const doctorName = card.querySelector('h2')?.textContent.trim();
-      commentsPageState.set(doctorName, 1);
+  const doctorName = card.querySelector('h2')?.textContent.trim();
+  commentsPageState.set(doctorName, 1);
 
-      // لود میانگین امتیاز
-      await loadAverageRating(doc.id, card);
-    }
+  await loadAverageRating(doc.id, card);
+}
 
     await loadCommentsForAllCards();
     initRatings();
