@@ -368,13 +368,8 @@ function toggleComment(btn) {
   btn.textContent = full.classList.contains('visible') ? 'بستن نظر' : 'ادامه نظر';
 }
 
-function toggleComment(btn) {
-  const full = btn.nextElementSibling;
-  full.classList.toggle('visible');
-  btn.textContent = full.classList.contains('visible') ? 'بستن نظر' : 'ادامه نظر';
-}
-
-document.addEventListener('click', async function(e) {
+// 📌 مدیریت کلیک‌ها
+document.addEventListener('click', async function (e) {
   const btn = e.target.closest('button');
   if (!btn) return;
 
@@ -382,12 +377,14 @@ document.addEventListener('click', async function(e) {
   if (btn.classList.contains('like-btn')) {
     const span = btn.querySelector('span');
     span.textContent = parseInt(span.textContent) + 1;
+    return;
   }
 
   // 📌 دیس‌لایک
   if (btn.classList.contains('dislike-btn')) {
     const span = btn.querySelector('span');
     span.textContent = parseInt(span.textContent) + 1;
+    return;
   }
 
   // 📌 نمایش فرم پاسخ
@@ -403,6 +400,7 @@ document.addEventListener('click', async function(e) {
       `;
       parent.appendChild(form);
     }
+    return;
   }
 
   // 📌 ثبت پاسخ در Supabase با approved: null
@@ -410,32 +408,76 @@ document.addEventListener('click', async function(e) {
     const form = btn.closest('.reply-form');
     const name = form.querySelector('.reply-name').value.trim();
     const text = form.querySelector('.reply-text').value.trim();
-    const parentId = form.closest('.comment-item').dataset.id;
+    const parentId = form.closest('.comment-item')?.dataset?.id;
 
     if (!name || !text) {
       alert('لطفاً نام و متن پاسخ را وارد کنید.');
       return;
     }
 
-    const { error } = await client.from('replies').insert([
-      {
-        name,
-        text,
-        parent_id: parentId,
-        ts: new Date().toISOString(),
-        approved: null
-      }
-    ]);
+    try {
+      const { error } = await client.from('replies').insert([
+        {
+          name,
+          text,
+          parent_id: parentId,
+          comment_id: parentId, // ✅ برای هماهنگی با پنل مدیریت
+          ts: new Date().toISOString(),
+          approved: null
+        }
+      ]);
 
-    if (error) {
-      alert('❌ خطا در ثبت پاسخ');
-      console.error(error);
-    } else {
-      alert('✅ پاسخ شما ثبت شد و پس از بررسی مدیر نمایش داده خواهد شد.');
-      form.remove();
+      if (error) {
+        alert('❌ خطا در ثبت پاسخ:\n' + error.message);
+        console.error(error);
+      } else {
+        alert('✅ پاسخ شما ثبت شد و پس از بررسی مدیر نمایش داده خواهد شد.');
+        form.remove();
+      }
+    } catch (err) {
+      alert('❌ خطای غیرمنتظره در ثبت پاسخ');
+      console.error(err);
     }
   }
 });
+
+
+function renderReplies(replies, container) {
+  container.innerHTML = '';
+  const firstTwo = replies.slice(0, 2);
+  const remaining = replies.length - 2;
+
+  firstTwo.forEach(reply => {
+    const div = document.createElement('div');
+    div.className = 'reply-item';
+    div.innerHTML = `
+      <div class="reply-name">${reply.name}</div>
+      <div class="reply-text">${reply.text}</div>
+    `;
+    container.appendChild(div);
+  });
+
+  if (remaining > 0) {
+    const btn = document.createElement('button');
+    btn.className = 'show-more-replies';
+    btn.textContent = `👁️ ادامه پاسخ‌ها (${remaining})`;
+    btn.onclick = () => {
+      replies.slice(2).forEach(reply => {
+        const div = document.createElement('div');
+        div.className = 'reply-item';
+        div.innerHTML = `
+          <div class="reply-name">${reply.name}</div>
+          <div class="reply-text">${reply.text}</div>
+        `;
+        container.appendChild(div);
+      });
+      btn.remove();
+    };
+    container.appendChild(btn);
+  }
+}
+
+
 
 async function loadReplies() {
   const { data, error } = await client
