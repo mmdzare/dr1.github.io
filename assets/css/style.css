@@ -620,3 +620,42 @@ footer {
   color: #6b7280;
   margin-top: 4px;
 }
+
+
+
+      /* 📌 دکمه مینیمال ادامه پاسخ‌ها */
+.reply-item {
+  margin: 8px 0;
+  padding: 6px 10px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.reply-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.reply-meta {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 4px;
+}
+
+.show-more-replies {
+  background: none;
+  border: none;
+  color: #0077cc;
+  font-size: 0.9rem;
+  padding: 4px 8px;
+  margin-top: 6px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  display: inline-block;
+}
+
+.show-more-replies:hover {
+  color: #005999;
+  text-decoration: underline;
+}
