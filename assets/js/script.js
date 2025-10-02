@@ -208,7 +208,7 @@ async function loadCommentsPage(card, doctorName, page) {
   try {
     const { data, error } = await client
       .from('comments')
-      .select('user_name, comment, created_at', { count: 'exact' })
+      .select('id, user_name, comment, created_at', { count: 'exact' })
       .eq('doctor_name', doctorName)
       .eq('approved', true)
       .order('created_at', { ascending: false })
@@ -219,17 +219,20 @@ async function loadCommentsPage(card, doctorName, page) {
     list.innerHTML = '';
     const rows = data || [];
 
-    rows.forEach((row) => {
+    for (const row of rows) {
       const ts = row.created_at ? new Date(row.created_at).getTime() : Date.now();
-      renderComment(list, { name: row.user_name, text: row.comment, ts });
-    });
+      await renderComment(list, {
+        id: row.id,
+        name: row.user_name,
+        text: row.comment,
+        ts,
+      });
+    }
 
-    // به‌روزرسانی وضعیت صفحه و دکمه‌ها
     info.textContent = `صفحه ${page}`;
     prevBtn.disabled = page <= 1;
     nextBtn.disabled = rows.length < COMMENTS_PAGE_SIZE;
 
-    // اگر هیچ نظری نبود
     if (rows.length === 0 && page === 1) {
       list.innerHTML = '<div class="empty">هنوز نظری ثبت نشده است.</div>';
     }
@@ -241,6 +244,7 @@ async function loadCommentsPage(card, doctorName, page) {
     return true;
   }
 }
+
 // 📌 ارسال نظر جدید
 async function addComment(button) {
   const card = button.closest('.doctor-card');
@@ -272,10 +276,11 @@ async function addComment(button) {
   }
 }
 
-// 📌 نمایش یک آیتم نظر
-function renderComment(list, item) {
+// 📌 نمایش یک آیتم نظر + پاسخ‌های تأییدشده
+async function renderComment(list, item) {
   const p = document.createElement('div');
   p.className = 'comment-item';
+  p.dataset.id = item.id;
 
   const date = new Date(item.ts);
   const meta = `${date.toLocaleDateString('fa-IR')} ${date.toLocaleTimeString(
@@ -284,23 +289,71 @@ function renderComment(list, item) {
   )}`;
 
   const words = item.text.trim().split(/\s+/);
-  if (words.length > 15) {
-    const preview = words.slice(0, 15).join(' ') + '...';
-    p.innerHTML = `
-      <strong>${item.name}:</strong>
-      <div class="comment-preview">${preview}</div>
+  const name = item.name || 'کاربر';
+
+  const previewHTML = words.length > 15
+    ? `
+      <div class="comment-preview">${words.slice(0, 15).join(' ')}...</div>
       <button class="expand-btn" onclick="toggleComment(this)">ادامه نظر</button>
       <div class="comment-full hidden">${item.text}</div>
-      <span class="comment-meta">${meta}</span>
-    `;
-  } else {
-    p.innerHTML = `
-      <strong>${item.name}:</strong> ${item.text}
-      <span class="comment-meta">${meta}</span>
-    `;
-  }
+    `
+    : item.text;
+
+  p.innerHTML = `
+    <strong>${name}:</strong>
+    ${previewHTML}
+
+    <div class="comment-actions">
+      <button class="like-btn"><i class="fa-solid fa-thumbs-up"></i> <span>0</span></button>
+      <button class="dislike-btn"><i class="fa-solid fa-thumbs-down"></i> <span>0</span></button>
+      <button class="reply-btn"><i class="fa-solid fa-reply"></i> پاسخ</button>
+    </div>
+
+    <span class="comment-meta">${meta}</span>
+  `;
 
   list.appendChild(p);
+
+  // 📌 نمایش پاسخ‌های تأییدشده
+  const repliesContainer = document.createElement('div');
+  repliesContainer.className = 'replies-list';
+  p.appendChild(repliesContainer);
+
+  try {
+    const { data: replies, error } = await client
+      .from('replies')
+      .select('*')
+      .eq('parent_id', item.id)
+      .eq('approved', true)
+      .order('ts', { ascending: true });
+
+    if (!error && replies.length > 0) {
+      replies.forEach((reply) => renderReply(repliesContainer, reply));
+    }
+  } catch (err) {
+    console.error('خطا در دریافت پاسخ‌ها:', err);
+  }
+}
+
+// 📌 نمایش یک پاسخ تأییدشده
+function renderReply(container, reply) {
+  const div = document.createElement('div');
+  div.className = 'reply-item';
+
+  const date = new Date(reply.ts);
+  const meta = `${date.toLocaleDateString('fa-IR')} ${date.toLocaleTimeString('fa-IR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+
+  div.innerHTML = `
+    <div class="reply-content">
+      <strong>${reply.name}:</strong> ${reply.text}
+      <span class="reply-meta">${meta}</span>
+    </div>
+  `;
+
+  container.appendChild(div);
 }
 
 // 📌 اجرای اولیه
@@ -313,4 +366,160 @@ function toggleComment(btn) {
   const full = btn.nextElementSibling;
   full.classList.toggle('visible');
   btn.textContent = full.classList.contains('visible') ? 'بستن نظر' : 'ادامه نظر';
+}
+
+function toggleComment(btn) {
+  const full = btn.nextElementSibling;
+  full.classList.toggle('visible');
+  btn.textContent = full.classList.contains('visible') ? 'بستن نظر' : 'ادامه نظر';
+}
+
+document.addEventListener('click', async function(e) {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+
+  // 📌 لایک
+  if (btn.classList.contains('like-btn')) {
+    const span = btn.querySelector('span');
+    span.textContent = parseInt(span.textContent) + 1;
+  }
+
+  // 📌 دیس‌لایک
+  if (btn.classList.contains('dislike-btn')) {
+    const span = btn.querySelector('span');
+    span.textContent = parseInt(span.textContent) + 1;
+  }
+
+  // 📌 نمایش فرم پاسخ
+  if (btn.classList.contains('reply-btn')) {
+    const parent = btn.closest('.comment-item');
+    if (!parent.querySelector('.reply-form')) {
+      const form = document.createElement('div');
+      form.className = 'reply-form';
+      form.innerHTML = `
+        <input type="text" placeholder="نام شما" class="reply-name">
+        <textarea placeholder="پاسخ خود را بنویسید..." class="reply-text"></textarea>
+        <button class="reply-send">ارسال پاسخ</button>
+      `;
+      parent.appendChild(form);
+    }
+  }
+
+  // 📌 ثبت پاسخ در Supabase با approved: null
+  if (btn.classList.contains('reply-send')) {
+    const form = btn.closest('.reply-form');
+    const name = form.querySelector('.reply-name').value.trim();
+    const text = form.querySelector('.reply-text').value.trim();
+    const parentId = form.closest('.comment-item').dataset.id;
+
+    if (!name || !text) {
+      alert('لطفاً نام و متن پاسخ را وارد کنید.');
+      return;
+    }
+
+    const { error } = await client.from('replies').insert([
+      {
+        name,
+        text,
+        parent_id: parentId,
+        ts: new Date().toISOString(),
+        approved: null
+      }
+    ]);
+
+    if (error) {
+      alert('❌ خطا در ثبت پاسخ');
+      console.error(error);
+    } else {
+      alert('✅ پاسخ شما ثبت شد و پس از بررسی مدیر نمایش داده خواهد شد.');
+      form.remove();
+    }
+  }
+});
+
+async function loadReplies() {
+  const { data, error } = await client
+    .from('replies')
+    .select('*')
+    .order('ts', { ascending: false });
+
+  const tbody = document.getElementById('replies-body');
+  const countSpan = document.getElementById('count-replies');
+  tbody.innerHTML = '';
+  let count = 0;
+
+  if (error) {
+    tbody.innerHTML = '<tr><td colspan="6">❌ خطا در دریافت پاسخ‌ها</td></tr>';
+    console.error(error);
+    return;
+  }
+
+  data.forEach(reply => {
+    const date = new Date(reply.ts).toLocaleDateString('fa-IR') + ' ' +
+                 new Date(reply.ts).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+
+    const status = reply.approved === 'accepted' ? '✅ تأیید شده' :
+                   reply.approved === 'rejected' ? '❌ رد شده' : '⏳ در انتظار';
+
+    const checkbox = `<input type="checkbox" class="reply-check" data-id="${reply.id}">`;
+
+    const actions = `
+      <button class="approve" onclick="approveReply('${reply.id}')">تأیید</button>
+      <button class="reject" onclick="rejectReply('${reply.id}')">رد</button>
+      <button class="delete" onclick="deleteReply('${reply.id}')">حذف</button>
+    `;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${checkbox}</td>
+      <td>${reply.name}</td>
+      <td class="comment">${reply.text}</td>
+      <td>${date}</td>
+      <td>${status}</td>
+      <td>${actions}</td>
+    `;
+    tbody.appendChild(tr);
+    if (reply.approved === null) count++;
+  });
+
+  countSpan.textContent = count;
+}
+
+async function approveReply(id) {
+  await client.from('replies').update({ approved: 'accepted' }).eq('id', id);
+  showToast('✅ پاسخ تأیید شد');
+  loadReplies();
+}
+
+async function rejectReply(id) {
+  await client.from('replies').update({ approved: 'rejected' }).eq('id', id);
+  showToast('❌ پاسخ رد شد');
+  loadReplies();
+}
+
+async function deleteReply(id) {
+  if (!confirm('حذف این پاسخ؟')) return;
+  await client.from('replies').delete().eq('id', id);
+  showToast('🗑️ پاسخ حذف شد');
+  loadReplies();
+}
+
+function bulkApproveReplies() {
+  const selected = document.querySelectorAll('.reply-check:checked');
+  const ids = Array.from(selected).map(el => el.dataset.id);
+  if (ids.length === 0) return showToast('هیچ پاسخی انتخاب نشده');
+  client.from('replies').update({ approved: 'accepted' }).in('id', ids).then(() => {
+    showToast(`✅ ${ids.length} پاسخ تأیید شد`);
+    loadReplies();
+  });
+}
+
+function bulkRejectReplies() {
+  const selected = document.querySelectorAll('.reply-check:checked');
+  const ids = Array.from(selected).map(el => el.dataset.id);
+  if (ids.length === 0) return showToast('هیچ پاسخی انتخاب نشده');
+  client.from('replies').update({ approved: 'rejected' }).in('id', ids).then(() => {
+    showToast(`❌ ${ids.length} پاسخ رد شد`);
+    loadReplies();
+  });
 }
