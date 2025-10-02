@@ -123,7 +123,7 @@ function wireSelectAll(){
 // ---------------- پاسخ‌ها ----------------
 let groupedReplies = {}; // برای استفاده در showMoreReplies
 
-async function loadReplies(){
+async function loadReplies() {
   const { data, error } = await client
     .from("replies")
     .select(`
@@ -132,6 +132,7 @@ async function loadReplies(){
       text,
       approved,
       ts,
+      parent_id,
       comment_id,
       comments (
         comment
@@ -139,19 +140,12 @@ async function loadReplies(){
     `)
     .order("ts", { ascending: false })
     .limit(50);
-    
+
   const tbody = document.getElementById("replies-body");
   const count = document.getElementById("count-replies");
 
-  if (error) {
-    console.error(error);
-    tbody.innerHTML = `<tr><td colspan="7">خطا: ${error.message}</td></tr>`;
-    count.textContent = "0";
-    return;
-  }
-
-  if (!data?.length) {
-    tbody.innerHTML = `<tr><td colspan="7">موردی نیست</td></tr>`;
+  if (error || !data?.length) {
+    tbody.innerHTML = `<tr><td colspan="7">${error ? 'خطا: ' + error.message : 'موردی نیست'}</td></tr>`;
     count.textContent = "0";
     return;
   }
@@ -159,31 +153,24 @@ async function loadReplies(){
   tbody.innerHTML = "";
   let pending = 0;
 
-  const pendingList  = data.filter(r => r.approved === null);
-  const approvedList = data.filter(r => r.approved === true);
-  const rejectedList = data.filter(r => r.approved === false);
-
-  const all = [...pendingList, ...approvedList, ...rejectedList];
-
-  // مرحله 1: دسته‌بندی پاسخ‌ها بر اساس comment_id
   groupedReplies = {};
-  all.forEach(r => {
-    const cid = r.comment_id;
+  data.forEach(r => {
+    const cid = r.comment_id || r.parent_id;
     if (!groupedReplies[cid]) groupedReplies[cid] = [];
     groupedReplies[cid].push(r);
   });
 
-  // مرحله 2: نمایش فقط دو پاسخ اول + دکمه ادامه
   Object.entries(groupedReplies).forEach(([cid, group]) => {
     const firstTwo = group.slice(0, 2);
     const remaining = group.length - 2;
 
     firstTwo.forEach(r => {
       const date = r.ts ? new Date(r.ts).toLocaleString("fa-IR") : "-";
-      let status = "⏳ در انتظار";
-      if (r.approved === true) status = "✅ تأیید شده";
-      else if (r.approved === false) status = "❌ رد شده";
-      else pending++;
+      const status =
+        r.approved === true ? "✅ تأیید شده" :
+        r.approved === false ? "❌ رد شده" : "⏳ در انتظار";
+
+      if (r.approved === null) pending++;
 
       const relatedComment = r.comments?.comment || "-";
 
@@ -223,14 +210,16 @@ async function loadReplies(){
 }
 
 function showMoreReplies(commentId) {
-  const more = groupedReplies[commentId].slice(2);
+  const more = groupedReplies[commentId]?.slice(2);
   const tbody = document.getElementById("replies-body");
+
+  if (!more?.length) return;
 
   more.forEach(r => {
     const date = r.ts ? new Date(r.ts).toLocaleString("fa-IR") : "-";
-    let status = "⏳ در انتظار";
-    if (r.approved === true) status = "✅ تأیید شده";
-    else if (r.approved === false) status = "❌ رد شده";
+    const status =
+      r.approved === true ? "✅ تأیید شده" :
+      r.approved === false ? "❌ رد شده" : "⏳ در انتظار";
 
     const relatedComment = r.comments?.comment || "-";
 
@@ -251,11 +240,9 @@ function showMoreReplies(commentId) {
     tbody.appendChild(tr);
   });
 
-  // حذف دکمه ادامه
   const btn = document.querySelector(`button.show-more[onclick*="${commentId}"]`);
   if (btn) btn.parentElement.parentElement.remove();
 }
-
 
 // ---------------- عملیات روی پاسخ‌ها (تکی و دسته‌ای) ----------------
 

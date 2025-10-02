@@ -313,8 +313,9 @@ async function renderComment(list, item) {
   `;
 
   list.appendChild(p);
+  loadVoteCounts(item.id, p); 
 
-  // 📌 نمایش پاسخ‌های تأییدشده
+  // 📌 نمایش پاسخ‌های تأییدشده با محدودیت
   const repliesContainer = document.createElement('div');
   repliesContainer.className = 'replies-list';
   p.appendChild(repliesContainer);
@@ -328,7 +329,21 @@ async function renderComment(list, item) {
       .order('ts', { ascending: true });
 
     if (!error && replies.length > 0) {
-      replies.forEach((reply) => renderReply(repliesContainer, reply));
+      const firstTwo = replies.slice(0, 2);
+      const remaining = replies.length - 2;
+
+      firstTwo.forEach(reply => renderReply(repliesContainer, reply));
+
+      if (remaining > 0) {
+        const btn = document.createElement('button');
+        btn.className = 'show-more-replies';
+        btn.textContent = `👁️ ادامه پاسخ‌ها (${remaining})`;
+        btn.onclick = () => {
+          replies.slice(2).forEach(reply => renderReply(repliesContainer, reply));
+          btn.remove();
+        };
+        repliesContainer.appendChild(btn);
+      }
     }
   } catch (err) {
     console.error('خطا در دریافت پاسخ‌ها:', err);
@@ -373,17 +388,34 @@ document.addEventListener('click', async function (e) {
   const btn = e.target.closest('button');
   if (!btn) return;
 
-  // 📌 لایک
-  if (btn.classList.contains('like-btn')) {
-    const span = btn.querySelector('span');
-    span.textContent = parseInt(span.textContent) + 1;
-    return;
-  }
+  // 📌 لایک یا دیس‌لایک با ثبت در Supabase
+  if (btn.classList.contains('like-btn') || btn.classList.contains('dislike-btn')) {
+    const parent = btn.closest('.comment-item');
+    const commentId = parent?.dataset?.id;
+    const clientId = getClientId();
+    const type = btn.classList.contains('like-btn') ? 'like' : 'dislike';
 
-  // 📌 دیس‌لایک
-  if (btn.classList.contains('dislike-btn')) {
-    const span = btn.querySelector('span');
-    span.textContent = parseInt(span.textContent) + 1;
+    try {
+      const { error } = await client.from('votes').insert([
+        { comment_id: commentId, client_id: clientId, type, ts: new Date().toISOString() }
+      ]);
+
+      if (error) {
+        if (error.message.includes('duplicate key')) {
+          alert('شما قبلاً رأی داده‌اید ✅');
+        } else {
+          alert('❌ خطا در ثبت رأی');
+          console.error(error);
+        }
+        return;
+      }
+
+      const span = btn.querySelector('span');
+      span.textContent = parseInt(span.textContent) + 1;
+    } catch (err) {
+      console.error('خطا در رأی‌گیری:', err);
+      alert('❌ خطا در ثبت رأی');
+    }
     return;
   }
 
@@ -421,7 +453,7 @@ document.addEventListener('click', async function (e) {
           name,
           text,
           parent_id: parentId,
-          comment_id: parentId, // ✅ برای هماهنگی با پنل مدیریت
+          comment_id: parentId,
           ts: new Date().toISOString(),
           approved: null
         }
@@ -564,4 +596,27 @@ function bulkRejectReplies() {
     showToast(`❌ ${ids.length} پاسخ رد شد`);
     loadReplies();
   });
+}
+
+// 📌 دریافت تعداد لایک و دیس‌لایک از Supabase
+async function loadVoteCounts(commentId, commentElement) {
+  try {
+    const { data, error } = await client
+      .from('votes')
+      .select('type', { count: 'exact' })
+      .eq('comment_id', commentId);
+
+    if (error) throw error;
+
+    const likes = data.filter(v => v.type === 'like').length;
+    const dislikes = data.filter(v => v.type === 'dislike').length;
+
+    const likeBtn = commentElement.querySelector('.like-btn span');
+    const dislikeBtn = commentElement.querySelector('.dislike-btn span');
+
+    likeBtn.textContent = likes;
+    dislikeBtn.textContent = dislikes;
+  } catch (err) {
+    console.error('خطا در دریافت رأی‌ها:', err);
+  }
 }
