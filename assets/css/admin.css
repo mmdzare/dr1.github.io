@@ -1,0 +1,169 @@
+:root {
+  --c-bg1:#f0fdfa; --c-bg2:#e0f2fe;
+  --c-teal:#0d9488; --c-blue:#0ea5e9;
+  --c-muted:#6b7280; --c-green:#10b981;
+  --c-orange:#f59e0b; --c-red:#ef4444;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: Vazir, Tahoma, sans-serif;
+  background: linear-gradient(135deg, var(--c-bg1), var(--c-bg2));
+  margin: 0;
+  padding: 20px;
+  color: #333;
+  direction: rtl;
+}
+
+h1, h2 {
+  text-align: center;
+  color: var(--c-teal);
+  margin: 0 0 12px 0;
+}
+h2 span { color:#0c4a6e; font-weight: normal; }
+
+.container { max-width: 1150px; margin: 0 auto; }
+
+.card {
+  background:#fff;
+  border-radius:16px;
+  padding:24px;
+  box-shadow: 0 12px 30px rgba(13,148,136,0.10);
+  transition: box-shadow .3s ease, transform .3s ease;
+}
+.card:hover {
+  box-shadow: 0 18px 40px rgba(14,165,233,0.18);
+  transform: translateY(-2px);
+}
+
+.hidden { display: none; }
+
+.row, .row-left {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+}
+.row { justify-content:center; }
+.row-left { justify-content:flex-start; }
+
+input[type="password"] {
+  width: 280px;
+  padding: 12px 16px;
+  font-size: 16px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+input[type="password"]:focus {
+  border-color: var(--c-blue);
+  box-shadow: 0 0 0 4px rgba(14,165,233,0.15);
+}
+
+button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background .25s ease, transform .25s ease, box-shadow .25s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  display:inline-flex; align-items:center; gap:8px;
+}
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+}
+.btn-primary { background: var(--c-blue); color:#fff; }
+.logout-btn { background: #dc2626; color:#fff; }
+
+.approve { background: var(--c-green); color:#fff; }
+.reject  { background: var(--c-orange); color:#fff; }
+.delete  { background: var(--c-red); color:#fff; }
+
+.meta { color: var(--c-muted); font-size: 14px; text-align:center; margin-top:6px; }
+.badge {
+  display:inline-block;
+  background:#e0f2fe;
+  color:#0c4a6e;
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:12px;
+  margin-top:8px;
+}
+.err { color:#b91c1c; text-align:center; margin-top:10px; min-height:24px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+  transition: box-shadow .3s ease;
+}
+table:hover { box-shadow: 0 10px 26px rgba(0,0,0,.12); }
+thead th {
+  background: var(--c-blue);
+  color: #fff;
+  padding: 12px;
+  font-weight: 800;
+  letter-spacing: .3px;
+}
+tbody td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: center;
+  vertical-align: top;
+}
+tbody tr { animation: fadeIn .35s ease; }
+tbody tr:hover td { background: #f9fafb; }
+td.comment { max-width:460px; text-align:right; line-height:1.8; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.section { margin-top: 26px; }
+
+/* Notification (toast) */
+#toast {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  margin: auto;
+  max-width: 420px;
+  background: #0ea5e9;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+  display: none;
+  z-index: 9999;
+  text-align: center;
+  font-weight: 700;
+}
+
+.controls {
+  margin: 10px 0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.controls .left { display:flex; gap:8px; align-items:center; }
+.controls .right { display:flex; gap:8px; align-items:center; }
+
+.checkbox { transform: scale(1.2); cursor: pointer; }
+
+@media (max-width: 768px){
+  input[type="password"] { width: 100%; }
+  .row { flex-direction:column; }
+  tbody td { font-size: 14px; }
+  button { width: auto; }
+  .controls { flex-direction:column; align-items:flex-start; }
+}
