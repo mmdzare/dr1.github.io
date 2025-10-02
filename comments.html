@@ -4,14 +4,8 @@
   <meta charset="UTF-8">
   <title>پنل مدیریت نظرات</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- فونت وزیر -->
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@latest/dist/font-face.css" rel="stylesheet" />
-
-  <!-- استایل پنل مدیریت -->
   <link rel="stylesheet" href="assets/css/admin.css">
-
-  <!-- Supabase و Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -20,7 +14,7 @@
 
   <div class="container">
 
-    <!-- Login -->
+    <!-- ورود -->
     <div id="login-box" class="card">
       <h1>🔐 ورود به پنل مدیریت</h1>
       <div class="row" style="margin-top:12px;">
@@ -31,14 +25,14 @@
       <div class="meta">رمز پیش‌فرض: dradmin123</div>
     </div>
 
-    <!-- Dashboard -->
+    <!-- پنل -->
     <div id="panel" class="hidden">
 
-      <!-- Header + Chart -->
+      <!-- هدر و نمودار -->
       <div class="card" style="margin-bottom:16px;">
-        <h1>📋 پنل مدیریت نظرات</h1>
+        <h1>📋 پنل مدیریت نظرات و پاسخ‌ها</h1>
         <div class="row" style="margin-top:10px;">
-          <button onclick="logout()" class="logout-btn">🚪 خروج از پنل</button>
+          <button onclick="logout()" class="logout-btn">🚪 خروج</button>
           <span class="badge" id="total-badge">مجموع نظرات: 0</span>
         </div>
         <div style="margin-top:16px;">
@@ -46,76 +40,74 @@
         </div>
       </div>
 
-      <!-- Pending -->
-      <div class="section card">
-        <h2>⏳ در انتظار تأیید (<span id="count-pending">0</span>)</h2>
-        <div class="controls">
-          <div class="left">
-            <label><input type="checkbox" id="pending-select-all" class="checkbox"> انتخاب همه</label>
-            <button class="approve" onclick="bulkApprove('pending')">✅ تأیید انتخاب‌شده‌ها</button>
-            <button class="reject"  onclick="bulkReject('pending')">❌ رد انتخاب‌شده‌ها</button>
+      <!-- چینش دو ستونی -->
+      <div style="display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
+
+        <!-- ستون نظرات -->
+        <div style="flex:1; min-width:400px;">
+          <div class="section card">
+            <h2>⏳ نظرات در انتظار تأیید (<span id="count-pending">0</span>)</h2>
+            <div class="controls">
+              <label><input type="checkbox" id="pending-select-all" class="checkbox"> انتخاب همه</label>
+              <button class="approve" onclick="bulkApprove('pending')">✅ تأیید</button>
+              <button class="reject"  onclick="bulkReject('pending')">❌ رد</button>
+            </div>
+            <table>
+              <thead>
+                <tr><th>✔</th><th>کاربر</th><th>پزشک</th><th>نظر</th><th>تاریخ</th><th>عملیات</th></tr>
+              </thead>
+              <tbody id="pending-body"><tr><td colspan="6">—</td></tr></tbody>
+            </table>
+          </div>
+
+          <div class="section card">
+            <h2>✅ نظرات تأیید شده (<span id="count-approved">0</span>)</h2>
+            <div class="controls">
+              <label><input type="checkbox" id="approved-select-all" class="checkbox"> انتخاب همه</label>
+              <button class="reject" onclick="bulkReject('approved')">❌ انتقال به رد شده</button>
+            </div>
+            <table>
+              <thead>
+                <tr><th>✔</th><th>کاربر</th><th>پزشک</th><th>نظر</th><th>تاریخ</th><th>عملیات</th></tr>
+              </thead>
+              <tbody id="approved-body"><tr><td colspan="6">—</td></tr></tbody>
+            </table>
+          </div>
+
+          <div class="section card">
+            <h2>❌ نظرات رد شده (<span id="count-rejected">0</span>)</h2>
+            <div class="controls">
+              <label><input type="checkbox" id="rejected-select-all" class="checkbox"> انتخاب همه</label>
+              <button class="approve" onclick="bulkApprove('rejected')">✅ انتقال به تأیید شده</button>
+            </div>
+            <table>
+              <thead>
+                <tr><th>✔</th><th>کاربر</th><th>پزشک</th><th>نظر</th><th>تاریخ</th><th>عملیات</th></tr>
+              </thead>
+              <tbody id="rejected-body"><tr><td colspan="6">—</td></tr></tbody>
+            </table>
           </div>
         </div>
-        <table>
-          <thead>
-            <tr><th>انتخاب</th><th>نام کاربر</th><th>پزشک</th><th>نظر</th><th>تاریخ</th><th>عملیات</th></tr>
-          </thead>
-          <tbody id="pending-body"><tr><td colspan="6">—</td></tr></tbody>
-        </table>
-      </div>
 
-      <!-- Approved -->
-      <div class="section card">
-        <h2>✅ تأیید شده (<span id="count-approved">0</span>)</h2>
-        <div class="controls">
-          <div class="left">
-            <label><input type="checkbox" id="approved-select-all" class="checkbox"> انتخاب همه</label>
-            <button class="reject" onclick="bulkReject('approved')">❌ انتقال انتخاب‌شده‌ها به رد شده</button>
+        <!-- ستون پاسخ‌ها -->
+        <div style="flex:1; min-width:400px;">
+          <div class="section card">
+            <h2>💬 پاسخ‌ها (<span id="count-replies">0</span>)</h2>
+            <div class="controls">
+              <label><input type="checkbox" id="replies-select-all" class="checkbox"> انتخاب همه</label>
+              <button class="approve" onclick="bulkApproveReplies()">✅ تأیید</button>
+              <button class="reject" onclick="bulkRejectReplies()">❌ رد</button>
+            </div>
+            <table>
+              <thead>
+                <tr><th>✔</th><th>پاسخ‌دهنده</th><th>پاسخ</th><th>نظر مربوطه</th><th>تاریخ</th><th>وضعیت</th><th>عملیات</th></tr>
+              </thead>
+              <tbody id="replies-body"><tr><td colspan="7">—</td></tr></tbody>
+            </table>
           </div>
         </div>
-        <table>
-          <thead>
-            <tr><th>انتخاب</th><th>نام کاربر</th><th>پزشک</th><th>نظر</th><th>تاریخ</th><th>عملیات</th></tr>
-          </thead>
-          <tbody id="approved-body"><tr><td colspan="6">—</td></tr></tbody>
-        </table>
-      </div>
 
-      <!-- Rejected -->
-      <div class="section card">
-        <h2>❌ رد شده (<span id="count-rejected">0</span>)</h2>
-        <div class="controls">
-          <div class="left">
-            <label><input type="checkbox" id="rejected-select-all" class="checkbox"> انتخاب همه</label>
-            <button class="approve" onclick="bulkApprove('rejected')">✅ انتقال انتخاب‌شده‌ها به تأیید شده</button>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr><th>انتخاب</th><th>نام کاربر</th><th>پزشک</th><th>نظر</th><th>تاریخ</th><th>عملیات</th></tr>
-          </thead>
-          <tbody id="rejected-body"><tr><td colspan="6">—</td></tr></tbody>
-        </table>
       </div>
-
-      <!-- Replies -->
-      <div class="section card">
-        <h2>💬 پاسخ‌ها (<span id="count-replies">0</span>)</h2>
-        <div class="controls">
-          <div class="left">
-            <label><input type="checkbox" id="replies-select-all" class="checkbox"> انتخاب همه</label>
-            <button class="approve" onclick="bulkApproveReplies()">✅ تأیید انتخاب‌شده‌ها</button>
-            <button class="reject" onclick="bulkRejectReplies()">❌ رد انتخاب‌شده‌ها</button>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr><th>انتخاب</th><th>نام کاربر</th><th>متن پاسخ</th><th>تاریخ</th><th>وضعیت</th><th>عملیات</th></tr>
-          </thead>
-          <tbody id="replies-body"><tr><td colspan="6">—</td></tr></tbody>
-        </table>
-      </div>
-
     </div>
   </div>
 
