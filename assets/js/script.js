@@ -37,7 +37,7 @@ function renderStars(avg, clickable = false, doctorId = null) {
   let html = "";
 
   for (let i = 1; i <= 5; i++) {
-    const filled = i <= Math.floor(avg); // دقیق‌تر از round
+    const filled = i <= Math.floor(avg); // ستاره‌های پر
     html += `<span 
                class="star ${filled ? "filled" : ""}" 
                ${clickable ? `data-doctor="${doctorId}" data-value="${i}"` : ""}>
@@ -50,12 +50,14 @@ function renderStars(avg, clickable = false, doctorId = null) {
   return html;
 }
 
-// 📌 اگر ستاره‌ها قابل کلیک باشن → این لیسنر رو یک بار در ابتدای صفحه فعال کن
+// 📌 لیسنر کلیک روی ستاره‌ها (فقط یک بار در ابتدای صفحه)
 document.addEventListener("click", function (e) {
   if (e.target.classList.contains("star") && e.target.dataset.value) {
     const doctorId = e.target.dataset.doctor;
     const value = parseInt(e.target.dataset.value, 10);
-    rateDoctor(doctorId, value);
+    if (doctorId && value) {
+      rateDoctor(doctorId, value);
+    }
   }
 });
 
@@ -120,11 +122,10 @@ async function rateDoctor(doctorId, value) {
 }
 
 // ===============================
-// 📌 لود پزشکان و ساخت کارت‌ها (از Supabase)
+// 📌 لود پزشکان و ساخت کارت‌ها (از Supabase) — نسخه اصلاح‌شده
 // ===============================
 async function loadDoctors() {
   try {
-    // گرفتن لیست پزشکان از Supabase
     const { data: doctors, error } = await client
       .from("doctors")
       .select("*")
@@ -136,9 +137,12 @@ async function loadDoctors() {
     }
 
     const list = document.getElementById("doctors-list");
+    if (!list) {
+      console.warn("⚠️ المان #doctors-list پیدا نشد.");
+      return;
+    }
     list.innerHTML = "";
 
-    // ساخت کارت برای هر پزشک
     for (let doc of doctors) {
       const avgRating = await getDoctorRating(doc.id);
 
@@ -147,6 +151,27 @@ async function loadDoctors() {
         doc.image_url && doc.image_url.trim() !== ""
           ? doc.image_url
           : DEFAULT_AVATAR;
+
+      // 📌 اصلاح لینک صفحه (اینستاگرام/وب‌سایت)
+      let pageUrl = doc.page_url;
+      let displayUrl = "";
+      if (pageUrl && typeof pageUrl === "string") {
+        pageUrl = pageUrl.trim();
+
+        // اگر فقط یوزرنیم بود (بدون http و بدون instagram.com)
+        if (!/^https?:\/\//i.test(pageUrl)) {
+          if (!pageUrl.includes("instagram.com")) {
+            // فقط یوزرنیم → تبدیل به لینک کامل اینستاگرام
+            pageUrl = "https://instagram.com/" + pageUrl.replace(/^@/, "");
+          } else {
+            // اگر instagram.com بود ولی http نداشت
+            pageUrl = "https://" + pageUrl.replace(/^\/+/, "");
+          }
+        }
+
+        // متن کوتاه برای نمایش داخل کارت
+        displayUrl = pageUrl.replace(/^https?:\/\//i, "");
+      }
 
       const card = document.createElement("div");
       card.className = "doctor-card";
@@ -157,13 +182,22 @@ async function loadDoctors() {
              alt="avatar"
              onerror="this.onerror=null; this.src='${DEFAULT_AVATAR}'">
 
-        <h3 class="doctor-name">${doc.name}</h3>
-        <p class="doctor-specialty">${doc.specialty || ""}</p>
-
-        <div class="doctor-rating" data-doctor-id="${doc.id}">
-          ${renderStars(avgRating, true, doc.id)}
+        <div class="doctor-info">
+          <h3 class="doctor-name"><i class="fa-solid fa-user-doctor"></i> ${doc.name}</h3>
+          <p><i class="fa-solid fa-briefcase-medical"></i> ${doc.specialty || ""}</p>
+          ${doc.city ? `<p><i class="fa-solid fa-location-dot"></i> ${doc.city}</p>` : ""}
+          ${doc.phone ? `<p><i class="fa-solid fa-phone"></i> ${doc.phone}</p>` : ""}
+          ${pageUrl ? `<p><i class="fa-brands fa-instagram"></i> 
+            <a href="${pageUrl}" target="_blank" rel="noopener">${displayUrl}</a></p>` : ""}
+          ${doc.address ? `<p><i class="fa-solid fa-house"></i> ${doc.address}</p>` : ""}
+          ${doc.work_hours ? `<p><i class="fa-solid fa-clock"></i> ${doc.work_hours}</p>` : ""}
+          <div class="doctor-rating" data-doctor-id="${doc.id}">
+            ${renderStars(avgRating, true, doc.id)}
+          </div>
+          ${doc.extra_info ? `<p><i class="fa-solid fa-circle-info"></i> ${doc.extra_info}</p>` : ""}
         </div>
 
+        <!-- 📌 نوار متحرک نظرات -->
         <div class="comments-ticker" data-doctor-name="${doc.name}">
           <div class="ticker-track"></div>
         </div>
@@ -175,14 +209,12 @@ async function loadDoctors() {
         </button>
       `;
 
-      // اضافه کردن کارت به لیست
       list.appendChild(card);
 
-      // 📌 راه‌اندازی تیکر نظرات برای هر پزشک
+      // 📌 راه‌اندازی تیکر نظرات
       initCommentsTicker(card, doc.name);
     }
 
-    // 📌 بعد از ساخت همه کارت‌ها، دکمه‌ها رو وصل می‌کنیم
     wireMoreCommentsButtons();
 
   } catch (err) {
@@ -193,7 +225,6 @@ async function loadDoctors() {
 // 📌 اتصال دکمه‌های «نظرات بیشتر» به مودال
 // ===============================
 function wireMoreCommentsButtons() {
-  // همه دکمه‌هایی که کلاس btn-more-comments دارن رو انتخاب می‌کنیم
   const buttons = document.querySelectorAll(".btn-more-comments");
 
   if (!buttons.length) {
@@ -205,7 +236,6 @@ function wireMoreCommentsButtons() {
     const doctorId = btn.getAttribute("data-doctor-id");
     const doctorName = btn.getAttribute("data-doctor-name");
 
-    // 📌 اتصال کلیک به باز کردن مودال
     btn.addEventListener("click", () => {
       openCommentsModal(doctorName, doctorId);
     });
@@ -216,6 +246,7 @@ function wireMoreCommentsButtons() {
 // ===============================
 async function initCommentsTicker(card, doctorName) {
   const track = card.querySelector(".ticker-track");
+  if (!track) return;
 
   // دریافت ۵ نظر آخر
   const { data: comments, error } = await client
@@ -232,7 +263,6 @@ async function initCommentsTicker(card, doctorName) {
     return;
   }
 
-  // اگر نظری وجود نداشت → پیام دعوت به ثبت نظر
   if (!comments || comments.length === 0) {
     track.textContent = "نظر خود را ثبت کنید ✍️";
     track.classList.add("active");
@@ -248,21 +278,22 @@ async function initCommentsTicker(card, doctorName) {
     track.classList.remove("active");
 
     setTimeout(() => {
-      // تغییر متن
-      track.textContent = `${c.user_name}: ${c.comment}`;
-      // نمایش با انیمیشن
+      // تغییر متن با استایل
+      track.innerHTML = `<span class="ticker-item">💬 ${c.user_name}: ${c.comment}</span>`;
       track.classList.add("active");
-    }, 600); // زمان محو شدن
+    }, 600);
 
-    // رفتن به نظر بعدی
     index = (index + 1) % comments.length;
   }
 
   // نمایش اولین نظر
   showNext();
 
-  // هر ۵ ثانیه نظر بعدی
-  setInterval(showNext, 5000);
+  // جلوگیری از چندین interval
+  if (track._intervalId) {
+    clearInterval(track._intervalId);
+  }
+  track._intervalId = setInterval(showNext, 5000);
 }
 // ===============================
 // 📌 باز کردن مودال و نمایش نظرات کامل
