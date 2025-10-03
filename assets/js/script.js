@@ -1,622 +1,526 @@
-// 🔑 Supabase keys
-const SUPABASE_URL = 'https://lzfonyofgwfiwzsloqjp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY';
-
+// ===============================
+// 🔑 اتصال به Supabase
+// ===============================
+const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/3774/3774299.png";
+const SUPABASE_URL = "https://lzfonyofgwfiwzsloqjp.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY";
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// 📌 آواتار پیش‌فرض پزشک
-function getDefaultDoctorAvatar() {
-  return 'https://cdn-icons-png.flaticon.com/512/387/387561.png';
-}
 
-// 📌 تنظیمات صفحه‌بندی نظرات
-const COMMENTS_PAGE_SIZE = 5;
-const commentsPageState = new Map();
-
-// 📌 لود پزشک‌ها
-async function loadDoctors() {
-  const container = document.getElementById('doctors');
-  if (!container) return;
-
-  container.textContent = 'در حال دریافت...';
-
-  try {
-    const { data, error } = await client
-      .from('doctors')
-      .select('id, name, specialty, city, image_url, phone, page_url, address, work_hours, extra_info');
-
-    if (error) throw error;
-    if (!data || data.length === 0) {
-      container.textContent = 'هیچ پزشکی یافت نشد.';
-      return;
-    }
-
-    container.innerHTML = '';
-
-    for (const doc of data) {
-  const card = document.createElement('div');
-  card.className = 'doctor-card';
-  const imgSrc = (doc.image_url && doc.image_url.trim()) ? doc.image_url : getDefaultDoctorAvatar();
-
-  card.innerHTML = `
-    <img src="${imgSrc}" alt="${doc.name || ''}" loading="lazy">
-    <div class="doctor-info">
-      <h2>${doc.name || 'بدون نام'}</h2>
-      <p><i class="fa-solid fa-user-doctor"></i> ${doc.specialty || ''} - ${doc.city || ''}</p>
-      ${doc.phone ? `<p><i class="fa-solid fa-phone"></i> ${doc.phone}</p>` : ''}
-      ${doc.page_url ? `<p><i class="fa-brands fa-instagram"></i> <a href="https://instagram.com/${doc.page_url}" target="_blank">@${doc.page_url}</a></p>` : ''}
-      ${doc.address ? `<p><i class="fa-solid fa-location-dot"></i> ${doc.address}</p>` : ''}
-      ${doc.work_hours ? `<p><i class="fa-regular fa-clock"></i> ${doc.work_hours}</p>` : ''}
-      ${doc.extra_info ? `<div class="extra-box"><i class="fa-solid fa-circle-info"></i> ${doc.extra_info}</div>` : ''}
-
-      <div class="rating" data-doctor="${doc.id}">
-        <span data-value="5">★</span>
-        <span data-value="4">★</span>
-        <span data-value="3">★</span>
-        <span data-value="2">★</span>
-        <span data-value="1">★</span>
-      </div>
-      <p class="rating-info">میانگین امتیاز: در حال بارگذاری...</p>
-    </div>
-
-    <div class="comment-box">
-      <input type="text" placeholder="نام شما">
-      <textarea placeholder="نظر خود را بنویسید..."></textarea>
-      <button class="comment-submit" onclick="addComment(this)">ارسال نظر</button>
-      <div class="comments-list"></div>
-      <div class="comments-controls">
-        <button class="pager-btn prev">قبلی</button>
-        <span class="pager-info">صفحه 1</span>
-        <button class="pager-btn next">بعدی</button>
-      </div>
-    </div>
-  `;
-
-  container.appendChild(card);
-
-  const doctorName = card.querySelector('h2')?.textContent.trim();
-  commentsPageState.set(doctorName, 1);
-
-  await loadAverageRating(doc.id, card);
-}
-
-    await loadCommentsForAllCards();
-    initRatings();
-  } catch (err) {
-    console.error('Supabase error (doctors):', err);
-    container.textContent = 'خطا در دریافت پزشکان';
+// ===============================
+// 📌 شناسه یکتا برای هر کاربر (برای رأی و امتیاز)
+// ===============================
+function getClientToken() {
+  let token = localStorage.getItem("client_token");
+  if (!token) {
+    token = Math.random().toString(36).substring(2) + Date.now();
+    localStorage.setItem("client_token", token);
   }
+  return token;
 }
 
-// 📌 لود میانگین امتیاز
-async function loadAverageRating(doctorId, card) {
-  const info = card.querySelector('.rating-info');
-  try {
-    const { data, error } = await client
-      .from('ratings')
-      .select('value', { count: 'exact' })
-      .eq('doctor_id', doctorId);
+// ===============================
+// 📌 گرفتن میانگین امتیاز پزشک
+// ===============================
+async function getDoctorRating(doctorId) {
+  const { data, error } = await client.from("ratings").select("value").eq("doctor_id", doctorId);
+  if (error || !data?.length) return 0;
+  const sum = data.reduce((acc, r) => acc + (r.value || 0), 0);
+  return (sum / data.length).toFixed(1);
+}
 
-    if (error) throw error;
+// ===============================
+// 📌 رندر ستاره‌ها (اصلاح‌شده)
+// ===============================
+function renderStars(avg, clickable = false, doctorId = null) {
+  avg = parseFloat(avg) || 0;
+  let html = "";
 
-    if (!data || data.length === 0) {
-      info.textContent = 'میانگین امتیاز: ثبت نشده';
-      return;
-    }
-
-    const avg = data.reduce((sum, r) => sum + r.value, 0) / data.length;
-    info.textContent = `میانگین امتیاز: ${avg.toFixed(1)}`;
-  } catch (e) {
-    console.error('خطا در دریافت میانگین:', e);
-    info.textContent = 'خطا در دریافت امتیاز';
+  for (let i = 1; i <= 5; i++) {
+    const filled = i <= Math.floor(avg); // دقیق‌تر از round
+    html += `<span 
+               class="star ${filled ? "filled" : ""}" 
+               ${clickable ? `data-doctor="${doctorId}" data-value="${i}"` : ""}>
+               ★
+             </span>`;
   }
+
+  // نمایش میانگین امتیاز
+  html += `<span class="avg-rating">میانگین: ${avg.toFixed(1)}</span>`;
+  return html;
 }
 
-// 📌 فعال‌سازی کلیک روی ستاره‌ها
-function getClientId() {
-  let cid = localStorage.getItem('client_id');
-  if (!cid) {
-    cid = crypto.randomUUID();
-    localStorage.setItem('client_id', cid);
+// 📌 اگر ستاره‌ها قابل کلیک باشن → این لیسنر رو یک بار در ابتدای صفحه فعال کن
+document.addEventListener("click", function (e) {
+  if (e.target.classList.contains("star") && e.target.dataset.value) {
+    const doctorId = e.target.dataset.doctor;
+    const value = parseInt(e.target.dataset.value, 10);
+    rateDoctor(doctorId, value);
   }
-  return cid;
-}
-
-function initRatings() {
-  document.querySelectorAll('.rating').forEach(ratingBox => {
-    const stars = ratingBox.querySelectorAll('span');
-    stars.forEach(star => {
-      star.addEventListener('click', async function () {
-        const value = parseInt(this.getAttribute('data-value'));
-        const doctorId = ratingBox.getAttribute('data-doctor');
-        const clientId = getClientId();
-
-        // هایلایت ستاره‌ها
-        stars.forEach(s => {
-          s.classList.remove('active');
-          if (parseInt(s.getAttribute('data-value')) <= value) {
-            s.classList.add('active');
-          }
-        });
-
-        // ذخیره امتیاز
-        const { error } = await client.from('ratings').insert([
-          { doctor_id: doctorId, value, client_id: clientId }
-        ]);
-
-        if (error) {
-          if (error.message.includes('duplicate key')) {
-            alert('شما قبلاً به این پزشک امتیاز داده‌اید ✅');
-          } else {
-            console.error('خطا در ثبت امتیاز:', error.message);
-            alert('❌ خطا در ثبت امتیاز');
-          }
-        } else {
-          await loadAverageRating(doctorId, ratingBox.closest('.doctor-card'));
-        }
-      });
-    });
-  });
-}
-
-// 📌 لود نظرات برای همه کارت‌ها
-async function loadCommentsForAllCards() {
-  const cards = document.querySelectorAll('.doctor-card');
-  for (const card of cards) {
-    const doctorName = card.querySelector('h2')?.textContent.trim();
-    await loadCommentsPage(card, doctorName, commentsPageState.get(doctorName) || 1);
-    attachPagerHandlers(card, doctorName);
-  }
-}
-
-// 📌 اتصال رویدادهای قبلی/بعدی
-function attachPagerHandlers(card, doctorName) {
-  const prevBtn = card.querySelector('.comments-controls .prev');
-  const nextBtn = card.querySelector('.comments-controls .next');
-
-  prevBtn.onclick = async () => {
-    const current = commentsPageState.get(doctorName) || 1;
-    if (current > 1) {
-      commentsPageState.set(doctorName, current - 1);
-      await loadCommentsPage(card, doctorName, current - 1);
-    }
-  };
-
-  nextBtn.onclick = async () => {
-    const current = commentsPageState.get(doctorName) || 1;
-    commentsPageState.set(doctorName, current + 1);
-    const hasData = await loadCommentsPage(card, doctorName, current + 1);
-    if (!hasData) {
-      commentsPageState.set(doctorName, current);
-      await loadCommentsPage(card, doctorName, current);
-    }
-  };
-}
-
-// 📌 لود یک صفحه نظرات
-async function loadCommentsPage(card, doctorName, page) {
-  const list = card.querySelector('.comments-list');
-  const prevBtn = card.querySelector('.comments-controls .prev');
-  const nextBtn = card.querySelector('.comments-controls .next');
-  const info = card.querySelector('.comments-controls .pager-info');
-
-  list.innerHTML = '<div class="loading">در حال دریافت نظرات...</div>';
-
-  const from = (page - 1) * COMMENTS_PAGE_SIZE;
-  const to = from + COMMENTS_PAGE_SIZE - 1;
-
-  try {
-    const { data, error } = await client
-      .from('comments')
-      .select('id, user_name, comment, created_at', { count: 'exact' })
-      .eq('doctor_name', doctorName)
-      .eq('approved', true)
-      .order('created_at', { ascending: false })
-      .range(from, to);
-
-    if (error) throw error;
-
-    list.innerHTML = '';
-    const rows = data || [];
-
-    for (const row of rows) {
-      const ts = row.created_at ? new Date(row.created_at).getTime() : Date.now();
-      await renderComment(list, {
-        id: row.id,
-        name: row.user_name,
-        text: row.comment,
-        ts,
-      });
-    }
-
-    info.textContent = `صفحه ${page}`;
-    prevBtn.disabled = page <= 1;
-    nextBtn.disabled = rows.length < COMMENTS_PAGE_SIZE;
-
-    if (rows.length === 0 && page === 1) {
-      list.innerHTML = '<div class="empty">هنوز نظری ثبت نشده است.</div>';
-    }
-
-    return rows.length > 0;
-  } catch (err) {
-    console.error('Supabase error (comments page):', err);
-    list.innerHTML = '<div class="error">خطا در دریافت نظرات</div>';
-    return true;
-  }
-}
-
-// 📌 ارسال نظر جدید
-async function addComment(button) {
-  const card = button.closest('.doctor-card');
-  const doctorName = card.querySelector('h2')?.textContent.trim();
-  const box = button.closest('.comment-box');
-  const nameInput = box.querySelector('input');
-  const textarea = box.querySelector('textarea');
-
-  const user_name = (nameInput.value || 'کاربر').trim();
-  const comment = (textarea.value || '').trim();
-
-  if (!comment) return;
-
-  try {
-    const { error } = await client.from('comments').insert([
-      { user_name, doctor_name: doctorName, comment, approved: null },
-    ]);
-    if (error) throw error;
-
-    nameInput.value = '';
-    textarea.value = '';
-    alert('نظر شما ثبت شد و پس از تأیید نمایش داده می‌شود.');
-
-    commentsPageState.set(doctorName, 1);
-    await loadCommentsPage(card, doctorName, 1);
-  } catch (err) {
-    console.error('Supabase error (insert comment):', err);
-    alert('خطا در ثبت نظر');
-  }
-}
-
-// 📌 نمایش یک آیتم نظر + پاسخ‌های تأییدشده
-async function renderComment(list, item) {
-  const p = document.createElement('div');
-  p.className = 'comment-item';
-  p.dataset.id = item.id;
-
-  const date = new Date(item.ts);
-  const meta = `${date.toLocaleDateString('fa-IR')} ${date.toLocaleTimeString(
-    'fa-IR',
-    { hour: '2-digit', minute: '2-digit' }
-  )}`;
-
-  const words = item.text.trim().split(/\s+/);
-  const name = item.name || 'کاربر';
-
-  const previewHTML = words.length > 15
-    ? `
-      <div class="comment-preview">${words.slice(0, 15).join(' ')}...</div>
-      <button class="expand-btn" onclick="toggleComment(this)">ادامه نظر</button>
-      <div class="comment-full hidden">${item.text}</div>
-    `
-    : item.text;
-
-  p.innerHTML = `
-    <strong>${name}:</strong>
-    ${previewHTML}
-
-    <div class="comment-actions">
-      <button class="like-btn"><i class="fa-solid fa-thumbs-up"></i> <span>0</span></button>
-      <button class="dislike-btn"><i class="fa-solid fa-thumbs-down"></i> <span>0</span></button>
-      <button class="reply-btn"><i class="fa-solid fa-reply"></i> پاسخ</button>
-    </div>
-
-    <span class="comment-meta">${meta}</span>
-  `;
-
-  list.appendChild(p);
-  loadVoteCounts(item.id, p); 
-
-  // 📌 نمایش پاسخ‌های تأییدشده با محدودیت
-  const repliesContainer = document.createElement('div');
-  repliesContainer.className = 'replies-list';
-  p.appendChild(repliesContainer);
-
-  try {
-    const { data: replies, error } = await client
-      .from('replies')
-      .select('*')
-      .eq('parent_id', item.id)
-      .eq('approved', true)
-      .order('ts', { ascending: true });
-
-    if (!error && replies.length > 0) {
-      const firstTwo = replies.slice(0, 2);
-      const remaining = replies.length - 2;
-
-      firstTwo.forEach(reply => renderReply(repliesContainer, reply));
-
-      if (remaining > 0) {
-        const btn = document.createElement('button');
-        btn.className = 'show-more-replies';
-        btn.textContent = `👁️ ادامه پاسخ‌ها (${remaining})`;
-        btn.onclick = () => {
-          replies.slice(2).forEach(reply => renderReply(repliesContainer, reply));
-          btn.remove();
-        };
-        repliesContainer.appendChild(btn);
-      }
-    }
-  } catch (err) {
-    console.error('خطا در دریافت پاسخ‌ها:', err);
-  }
-}
-
-// 📌 نمایش یک پاسخ تأییدشده
-function renderReply(container, reply) {
-  const div = document.createElement('div');
-  div.className = 'reply-item';
-
-  const date = new Date(reply.ts);
-  const meta = `${date.toLocaleDateString('fa-IR')} ${date.toLocaleTimeString('fa-IR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })}`;
-
-  div.innerHTML = `
-    <div class="reply-content">
-      <strong>${reply.name}:</strong> ${reply.text}
-      <span class="reply-meta">${meta}</span>
-    </div>
-  `;
-
-  container.appendChild(div);
-}
-
-// 📌 اجرای اولیه
-document.addEventListener('DOMContentLoaded', () => {
-  loadDoctors();
 });
 
-// 📌 تابع باز و بسته کردن نظر طولانی
-function toggleComment(btn) {
-  const full = btn.nextElementSibling;
-  full.classList.toggle('visible');
-  btn.textContent = full.classList.contains('visible') ? 'بستن نظر' : 'ادامه نظر';
+// ===============================
+// 📌 ثبت امتیاز پزشک (اصلاح‌شده)
+// ===============================
+async function rateDoctor(doctorId, value) {
+  try {
+    const clientId = getClientToken();
+
+    // بررسی وجود امتیاز قبلی
+    const { data: existing, error: selectError } = await client
+      .from("ratings")
+      .select("id")
+      .eq("doctor_id", doctorId)
+      .eq("client_id", clientId)
+      .maybeSingle();
+
+    if (selectError) {
+      console.error("❌ خطا در بررسی امتیاز قبلی:", selectError.message);
+      return;
+    }
+
+    // اگر قبلاً امتیاز داده بود → آپدیت
+    if (existing) {
+      const { error: updateError } = await client
+        .from("ratings")
+        .update({ value })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        console.error("❌ خطا در بروزرسانی امتیاز:", updateError.message);
+        return;
+      }
+    } 
+    // اگر اولین بار امتیاز می‌ده → درج
+    else {
+      const { error: insertError } = await client
+        .from("ratings")
+        .insert([{ doctor_id: doctorId, value, client_id: clientId }]);
+
+      if (insertError) {
+        console.error("❌ خطا در ثبت امتیاز:", insertError.message);
+        return;
+      }
+    }
+
+    // محاسبه میانگین جدید
+    const avg = await getDoctorRating(doctorId);
+
+    // بروزرسانی همه‌ی بخش‌های نمایش امتیاز
+    document.querySelectorAll(`[data-doctor-id="${doctorId}"] .doctor-rating`)
+      .forEach(el => {
+        el.innerHTML = renderStars(avg, true, doctorId);
+      });
+
+    console.log(`✅ امتیاز ${value} برای پزشک ${doctorId} ثبت شد. میانگین جدید: ${avg}`);
+
+  } catch (err) {
+    console.error("❌ خطای غیرمنتظره در ثبت امتیاز:", err);
+  }
 }
 
-// 📌 مدیریت کلیک‌ها
-document.addEventListener('click', async function (e) {
-  const btn = e.target.closest('button');
-  if (!btn) return;
+// ===============================
+// 📌 لود پزشکان و ساخت کارت‌ها (از Supabase)
+// ===============================
 
-  // 📌 لایک یا دیس‌لایک با ثبت در Supabase
-  if (btn.classList.contains('like-btn') || btn.classList.contains('dislike-btn')) {
-    const parent = btn.closest('.comment-item');
-    const commentId = parent?.dataset?.id;
-    const clientId = getClientId();
-    const type = btn.classList.contains('like-btn') ? 'like' : 'dislike';
 
-    try {
-      const { error } = await client.from('votes').insert([
-        { comment_id: commentId, client_id: clientId, type, ts: new Date().toISOString() }
+async function loadDoctors() {
+  const { data: doctors, error } = await client
+    .from("doctors")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("❌ خطا در دریافت پزشکان:", error);
+    return;
+  }
+
+  const list = document.getElementById("doctors-list");
+  list.innerHTML = "";
+
+  for (let doc of doctors) {
+    const avgRating = await getDoctorRating(doc.id);
+    const card = document.createElement("div");
+    card.className = "doctor-card";
+
+    card.innerHTML = `
+      <img src="${doc.image_url && doc.image_url.trim() !== "" ? doc.image_url : DEFAULT_AVATAR}" 
+           class="doctor-avatar" alt="avatar">
+      <h3 class="doctor-name">${doc.name}</h3>
+      <p class="doctor-specialty">${doc.specialty || ""}</p>
+      <div class="doctor-rating" data-doctor-id="${doc.id}">
+        ${renderStars(avgRating, true, doc.id)}
+      </div>
+      <div class="comments-ticker" data-doctor-name="${doc.name}">
+        <div class="ticker-track"></div>
+      </div>
+      <button class="btn-more-comments" 
+              data-doctor-name="${doc.name}" 
+              data-doctor-id="${doc.id}">
+        نظرات بیشتر
+      </button>
+    `;
+
+    list.appendChild(card);
+    initCommentsTicker(card, doc.name);
+  }
+
+  wireMoreCommentsButtons();
+}
+// ===============================
+// 📌 نوار ۵ نظر آخر (نمایش ثابت + تعویض هر ۵ ثانیه)
+// ===============================
+async function initCommentsTicker(card, doctorName) {
+  const track = card.querySelector(".ticker-track");
+
+  // دریافت ۵ نظر آخر
+  const { data: comments, error } = await client
+    .from("comments")
+    .select("user_name, comment")
+    .eq("doctor_name", doctorName)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (error) {
+    console.error("❌ خطا در دریافت نظرات:", error.message);
+    track.textContent = "خطا در بارگذاری نظرات";
+    track.classList.add("active");
+    return;
+  }
+
+  // اگر نظری وجود نداشت → پیام دعوت به ثبت نظر
+  if (!comments || comments.length === 0) {
+    track.textContent = "نظر خود را ثبت کنید ✍️";
+    track.classList.add("active");
+    return;
+  }
+
+  let index = 0;
+
+  function showNext() {
+    const c = comments[index];
+
+    // محو کردن متن قبلی
+    track.classList.remove("active");
+
+    setTimeout(() => {
+      // تغییر متن
+      track.textContent = `${c.user_name}: ${c.comment}`;
+      // نمایش با انیمیشن
+      track.classList.add("active");
+    }, 600); // زمان محو شدن
+
+    // رفتن به نظر بعدی
+    index = (index + 1) % comments.length;
+  }
+
+  // نمایش اولین نظر
+  showNext();
+
+  // هر ۵ ثانیه نظر بعدی
+  setInterval(showNext, 5000);
+}
+// ===============================
+// 📌 باز کردن مودال و نمایش نظرات کامل
+// ===============================
+async function openCommentsModal(doctorName, doctorId) {
+  const modal = document.getElementById("comments-modal");
+  modal.classList.remove("hidden");
+
+  try {
+    const { data: doctor, error } = await client
+      .from("doctors")
+      .select("name, specialty, image_url")
+      .eq("id", doctorId)
+      .maybeSingle();
+
+    if (error) console.error("❌ خطا در دریافت پزشک:", error.message);
+
+    // 📌 اگر پزشک عکس نداشت → آواتار پیش‌فرض
+    modal.querySelector(".modal-doctor-avatar").src =
+      doctor?.image_url && doctor.image_url.trim() !== ""
+        ? doctor.image_url
+        : DEFAULT_AVATAR;
+
+    modal.querySelector(".modal-doctor-name").textContent =
+      doctor?.name || doctorName;
+    modal.querySelector(".modal-doctor-specialty").textContent =
+      doctor?.specialty || "";
+
+    await renderFullComments(doctorName, doctorId);
+
+    // فرم ارسال نظر
+    const form = document.getElementById("modal-comment-form");
+    const showFormBtn = modal.querySelector(".btn-show-form");
+    showFormBtn.onclick = () => form.classList.toggle("hidden");
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const user_name = document.getElementById("modal_user_name").value.trim();
+      const comment_text = document
+        .getElementById("modal_comment_text")
+        .value.trim();
+      if (!user_name || !comment_text) return;
+
+      const { error: insertError } = await client.from("comments").insert([
+        {
+          doctor_name: doctorName,
+          user_name,
+          comment: comment_text,
+          user_token: getClientToken(),
+          approved: null,
+        },
       ]);
 
-      if (error) {
-        if (error.message.includes('duplicate key')) {
-          alert('شما قبلاً رأی داده‌اید ✅');
-        } else {
-          alert('❌ خطا در ثبت رأی');
-          console.error(error);
-        }
+      if (insertError) {
+        console.error("❌ خطا در ثبت نظر:", insertError.message);
         return;
       }
 
-      const span = btn.querySelector('span');
-      span.textContent = parseInt(span.textContent) + 1;
-    } catch (err) {
-      console.error('خطا در رأی‌گیری:', err);
-      alert('❌ خطا در ثبت رأی');
-    }
-    return;
+      form.reset();
+      form.classList.add("hidden");
+      await renderFullComments(doctorName, doctorId);
+
+      // بروزرسانی تیکر
+      document
+        .querySelectorAll(`.comments-ticker[data-doctor-name="${doctorName}"]`)
+        .forEach((t) =>
+          initCommentsTicker(t.closest(".doctor-card"), doctorName)
+        );
+    };
+
+    // بستن مودال
+    modal.querySelector(".modal-close").onclick = () =>
+      modal.classList.add("hidden");
+    modal.querySelector(".modal-backdrop").onclick = () =>
+      modal.classList.add("hidden");
+  } catch (err) {
+    console.error("❌ خطای غیرمنتظره:", err);
   }
+}
+// ===============================
+// 📌 نمایش کامل نظرات + پاسخ‌ها + لایک/دیس‌لایک
+// ===============================
+async function renderFullComments(doctorName, doctorId) {
+  const wrap = document.querySelector("#comments-modal .comments-list");
+  wrap.innerHTML = "در حال بارگذاری...";
 
-  // 📌 نمایش فرم پاسخ
-  if (btn.classList.contains('reply-btn')) {
-    const parent = btn.closest('.comment-item');
-    if (!parent.querySelector('.reply-form')) {
-      const form = document.createElement('div');
-      form.className = 'reply-form';
-      form.innerHTML = `
-        <input type="text" placeholder="نام شما" class="reply-name">
-        <textarea placeholder="پاسخ خود را بنویسید..." class="reply-text"></textarea>
-        <button class="reply-send">ارسال پاسخ</button>
-      `;
-      parent.appendChild(form);
-    }
-    return;
-  }
+  try {
+    const { data: comments, error } = await client
+      .from("comments")
+      .select("id, user_name, comment, created_at, approved")
+      .eq("doctor_name", doctorName)
+      .order("created_at", { ascending: false });
 
-  // 📌 ثبت پاسخ در Supabase با approved: null
-  if (btn.classList.contains('reply-send')) {
-    const form = btn.closest('.reply-form');
-    const name = form.querySelector('.reply-name').value.trim();
-    const text = form.querySelector('.reply-text').value.trim();
-    const parentId = form.closest('.comment-item')?.dataset?.id;
-
-    if (!name || !text) {
-      alert('لطفاً نام و متن پاسخ را وارد کنید.');
+    if (error) {
+      wrap.innerHTML = "❌ خطا در دریافت نظرات";
       return;
     }
 
-    try {
-      const { error } = await client.from('replies').insert([
-        {
-          name,
-          text,
-          parent_id: parentId,
-          comment_id: parentId,
-          ts: new Date().toISOString(),
-          approved: null
-        }
-      ]);
-
-      if (error) {
-        alert('❌ خطا در ثبت پاسخ:\n' + error.message);
-        console.error(error);
-      } else {
-        alert('✅ پاسخ شما ثبت شد و پس از بررسی مدیر نمایش داده خواهد شد.');
-        form.remove();
-      }
-    } catch (err) {
-      alert('❌ خطای غیرمنتظره در ثبت پاسخ');
-      console.error(err);
+    if (!comments || comments.length === 0) {
+      wrap.innerHTML = "<p>هنوز نظری ثبت نشده است.</p>";
+      return;
     }
+
+    const ids = comments.map((c) => c.id);
+    const { data: replies } = ids.length
+      ? await client
+          .from("replies")
+          .select("id, name, text, comment_id, ts")
+          .in("comment_id", ids)
+      : { data: [] };
+    const { data: votes } = ids.length
+      ? await client
+          .from("votes")
+          .select("comment_id, type, client_id")
+          .in("comment_id", ids)
+      : { data: [] };
+
+    wrap.innerHTML = "";
+
+    // نمایش امتیاز کلی
+    const ratingBox = document.createElement("div");
+    ratingBox.className = "rating-box";
+    ratingBox.innerHTML = renderStars(
+      await getDoctorRating(doctorId),
+      true,
+      doctorId
+    );
+    wrap.appendChild(ratingBox);
+
+    // نمایش هر نظر
+    comments.forEach((c) => {
+      const likeCount = votes.filter(
+        (v) => v.comment_id === c.id && v.type === "like"
+      ).length;
+      const dislikeCount = votes.filter(
+        (v) => v.comment_id === c.id && v.type === "dislike"
+      ).length;
+
+      const item = document.createElement("div");
+      item.className = "comment-item";
+      item.innerHTML = `
+        <div class="comment-meta">
+          ${c.user_name} • ${new Date(c.created_at).toLocaleDateString("fa-IR")}
+          ${c.approved ? "✓" : ""}
+        </div>
+        <div class="comment-text">${c.comment}</div>
+        <div class="comment-actions">
+          <button onclick="voteComment('${c.id}','like','${doctorName}',${doctorId})">👍 ${likeCount}</button>
+          <button onclick="voteComment('${c.id}','dislike','${doctorName}',${doctorId})">👎 ${dislikeCount}</button>
+          <button onclick="toggleReplyForm('${c.id}')">↩️ پاسخ</button>
+        </div>
+        <div id="reply-form-${c.id}" class="reply-form hidden">
+          <input type="text" id="reply_name_${c.id}" placeholder="نام شما">
+          <textarea id="reply_text_${c.id}" placeholder="پاسخ شما"></textarea>
+          <button onclick="sendReply('${c.id}','${doctorName}',${doctorId})">ارسال پاسخ</button>
+        </div>
+      `;
+
+      // 📌 نمایش پاسخ‌ها
+      const rlist = document.createElement("div");
+      rlist.className = "reply-list";
+      (replies || [])
+        .filter((r) => r.comment_id === c.id)
+        .forEach((r) => {
+          const ri = document.createElement("div");
+          ri.className = "reply-item";
+          ri.innerHTML = `
+            <div class="reply-content">${r.text}</div>
+            <div class="reply-meta">${r.name} • ${new Date(
+            r.ts
+          ).toLocaleDateString("fa-IR")}</div>
+          `;
+          rlist.appendChild(ri);
+        });
+
+      if (rlist.children.length) item.appendChild(rlist);
+      wrap.appendChild(item);
+    });
+  } catch (err) {
+    wrap.innerHTML = "❌ خطای غیرمنتظره در بارگذاری نظرات";
+    console.error(err);
   }
-});
+}
 
+// ===============================
+// 📌 ثبت رأی لایک/دیس‌لایک
+// ===============================
+async function voteComment(commentId, type, doctorName, doctorId) {
+  const clientId = getClientToken();
+  try {
+    const { data: existing } = await client
+      .from("votes")
+      .select("id, type")
+      .eq("comment_id", commentId)
+      .eq("client_id", clientId)
+      .maybeSingle();
 
-function renderReplies(replies, container) {
-  container.innerHTML = '';
-  const firstTwo = replies.slice(0, 2);
-  const remaining = replies.length - 2;
+    if (existing) {
+      if (existing.type === type) {
+        await client.from("votes").delete().eq("id", existing.id);
+      } else {
+        await client.from("votes").update({ type }).eq("id", existing.id);
+      }
+    } else {
+      await client
+        .from("votes")
+        .insert([{ comment_id: commentId, client_id: clientId, type }]);
+    }
 
-  firstTwo.forEach(reply => {
-    const div = document.createElement('div');
-    div.className = 'reply-item';
-    div.innerHTML = `
-      <div class="reply-name">${reply.name}</div>
-      <div class="reply-text">${reply.text}</div>
-    `;
-    container.appendChild(div);
-  });
+    // 📌 رفرش لیست نظرات بعد از رأی
+    await renderFullComments(doctorName, doctorId);
+  } catch (err) {
+    console.error("❌ خطا در ثبت رأی:", err);
+  }
+}
 
-  if (remaining > 0) {
-    const btn = document.createElement('button');
-    btn.className = 'show-more-replies';
-    btn.textContent = `👁️ ادامه پاسخ‌ها (${remaining})`;
-    btn.onclick = () => {
-      replies.slice(2).forEach(reply => {
-        const div = document.createElement('div');
-        div.className = 'reply-item';
-        div.innerHTML = `
-          <div class="reply-name">${reply.name}</div>
-          <div class="reply-text">${reply.text}</div>
-        `;
-        container.appendChild(div);
-      });
-      btn.remove();
-    };
-    container.appendChild(btn);
+// ===============================
+// 📌 نمایش/مخفی‌سازی فرم پاسخ
+// ===============================
+function toggleReplyForm(commentId) {
+  const form = document.getElementById(`reply-form-${commentId}`);
+  if (form) form.classList.toggle("hidden");
+}
+
+// ===============================
+// 📌 ارسال پاسخ
+// ===============================
+async function sendReply(commentId, doctorName, doctorId) {
+  const name = document.getElementById(`reply_name_${commentId}`).value.trim();
+  const text = document.getElementById(`reply_text_${commentId}`).value.trim();
+  if (!name || !text) return;
+
+  try {
+    const { error } = await client.from("replies").insert([
+      {
+        comment_id: commentId,
+        name,
+        text,
+        ts: new Date().toISOString(),
+      },
+    ]);
+
+    if (error) {
+      console.error("❌ خطا در ثبت پاسخ:", error.message);
+      return;
+    }
+
+    // پاک کردن فرم بعد از ارسال
+    document.getElementById(`reply_name_${commentId}`).value = "";
+    document.getElementById(`reply_text_${commentId}`).value = "";
+
+    // رفرش لیست نظرات
+    await renderFullComments(doctorName, doctorId);
+  } catch (err) {
+    console.error("❌ خطای غیرمنتظره در ثبت پاسخ:", err);
   }
 }
 
 
+// ===============================
+// 📌 افزودن پزشک جدید (با آواتار پیش‌فرض)
+// ===============================
+async function createDoctor(name, specialty, image_url) {
+  // اگر کاربر لینکی برای عکس نداد → آواتار پیش‌فرض
+  const avatar = image_url && image_url.trim() !== "" ? image_url : DEFAULT_AVATAR;
 
-async function loadReplies() {
-  const { data, error } = await client
-    .from('replies')
-    .select('*')
-    .order('ts', { ascending: false });
-
-  const tbody = document.getElementById('replies-body');
-  const countSpan = document.getElementById('count-replies');
-  tbody.innerHTML = '';
-  let count = 0;
+  const { error } = await client
+    .from("doctors")
+    .insert([{ name, specialty, image_url: avatar }]);
 
   if (error) {
-    tbody.innerHTML = '<tr><td colspan="6">❌ خطا در دریافت پاسخ‌ها</td></tr>';
-    console.error(error);
-    return;
+    console.error("❌ خطا در افزودن پزشک:", error.message);
+  } else {
+    console.log("✅ پزشک جدید با موفقیت اضافه شد");
+    loadDoctors();
   }
-
-  data.forEach(reply => {
-    const date = new Date(reply.ts).toLocaleDateString('fa-IR') + ' ' +
-                 new Date(reply.ts).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-
-    const status = reply.approved === 'accepted' ? '✅ تأیید شده' :
-                   reply.approved === 'rejected' ? '❌ رد شده' : '⏳ در انتظار';
-
-    const checkbox = `<input type="checkbox" class="reply-check" data-id="${reply.id}">`;
-
-    const actions = `
-      <button class="approve" onclick="approveReply('${reply.id}')">تأیید</button>
-      <button class="reject" onclick="rejectReply('${reply.id}')">رد</button>
-      <button class="delete" onclick="deleteReply('${reply.id}')">حذف</button>
-    `;
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${checkbox}</td>
-      <td>${reply.name}</td>
-      <td class="comment">${reply.text}</td>
-      <td>${date}</td>
-      <td>${status}</td>
-      <td>${actions}</td>
-    `;
-    tbody.appendChild(tr);
-    if (reply.approved === null) count++;
-  });
-
-  countSpan.textContent = count;
 }
 
-async function approveReply(id) {
-  await client.from('replies').update({ approved: 'accepted' }).eq('id', id);
-  showToast('✅ پاسخ تأیید شد');
-  loadReplies();
-}
-
-async function rejectReply(id) {
-  await client.from('replies').update({ approved: 'rejected' }).eq('id', id);
-  showToast('❌ پاسخ رد شد');
-  loadReplies();
-}
-
-async function deleteReply(id) {
-  if (!confirm('حذف این پاسخ؟')) return;
-  await client.from('replies').delete().eq('id', id);
-  showToast('🗑️ پاسخ حذف شد');
-  loadReplies();
-}
-
-function bulkApproveReplies() {
-  const selected = document.querySelectorAll('.reply-check:checked');
-  const ids = Array.from(selected).map(el => el.dataset.id);
-  if (ids.length === 0) return showToast('هیچ پاسخی انتخاب نشده');
-  client.from('replies').update({ approved: 'accepted' }).in('id', ids).then(() => {
-    showToast(`✅ ${ids.length} پاسخ تأیید شد`);
-    loadReplies();
-  });
-}
-
-function bulkRejectReplies() {
-  const selected = document.querySelectorAll('.reply-check:checked');
-  const ids = Array.from(selected).map(el => el.dataset.id);
-  if (ids.length === 0) return showToast('هیچ پاسخی انتخاب نشده');
-  client.from('replies').update({ approved: 'rejected' }).in('id', ids).then(() => {
-    showToast(`❌ ${ids.length} پاسخ رد شد`);
-    loadReplies();
-  });
-}
-
-// 📌 دریافت تعداد لایک و دیس‌لایک از Supabase
-async function loadVoteCounts(commentId, commentElement) {
-  try {
-    const { data, error } = await client
-      .from('votes')
-      .select('type', { count: 'exact' })
-      .eq('comment_id', commentId);
-
-    if (error) throw error;
-
-    const likes = data.filter(v => v.type === 'like').length;
-    const dislikes = data.filter(v => v.type === 'dislike').length;
-
-    const likeBtn = commentElement.querySelector('.like-btn span');
-    const dislikeBtn = commentElement.querySelector('.dislike-btn span');
-
-    likeBtn.textContent = likes;
-    dislikeBtn.textContent = dislikes;
-  } catch (err) {
-    console.error('خطا در دریافت رأی‌ها:', err);
+// ===============================
+// 📌 پر کردن دیتابیس با پزشکان نمونه (اختیاری)
+// ===============================
+async function seedDoctors() {
+  const sample = [];
+  for (let i = 1; i <= 10; i++) {
+    sample.push({
+      name: `دکتر نمونه ${i}`,
+      specialty: "تخصص عمومی",
+      image_url: "assets/img/default-avatar.png",
+    });
   }
+  await client.from("doctors").insert(sample);
+  loadDoctors();
+}
+
+// ===============================
+// 📌 شروع اولیه
+// ===============================
+document.addEventListener("DOMContentLoaded", loadDoctors);
+
+// ===============================
+// 📌 دکمه افزودن پزشک (اختیاری)
+// ===============================
+function openCreateDoctor() {
+  alert("اینجا می‌تونی فرم افزودن پزشک رو نمایش بدی.");
 }
