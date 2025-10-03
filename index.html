@@ -4,13 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>سامانه پزشکان برتر</title>
+
+  <!-- آیکون‌ها -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- استایل اصلی -->
   <link rel="stylesheet" href="assets/css/style.css">
-
-  <!-- آیکون‌ها -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -48,7 +47,7 @@
   <main class="container" id="doctors">
     <h2 class="section-title">لیست پزشکان</h2>
     <div id="doctors-list" class="doctors-grid">
-      <!-- کارت پزشکان با جاوااسکریپت از Supabase ساخته می‌شوند -->
+      <!-- کارت پزشکان با جاوااسکریپت ساخته می‌شوند -->
     </div>
   </main>
 
@@ -63,8 +62,17 @@
         <div class="modal-doctor-info">
           <h3 class="modal-doctor-name"></h3>
           <p class="modal-doctor-specialty"></p>
+          <p class="modal-doctor-city"></p>
+          <p class="modal-doctor-phone"></p>
+          <p class="modal-doctor-address"></p>
+          <p class="modal-doctor-hours"></p>
+          <p class="modal-doctor-about"></p>
+          <div class="modal-doctor-page"></div>
         </div>
       </div>
+
+      <!-- ⭐ امتیاز (فقط با JS پر می‌شود) -->
+      <div class="modal-doctor-rating"></div>
 
       <!-- دکمه نمایش فرم -->
       <button class="btn-show-form">➕ ثبت نظر</button>
@@ -78,19 +86,34 @@
 
       <!-- لیست نظرات -->
       <div class="modal-comments">
-        <div class="comments-list"></div>
+        <div class="comments-list">
+          <!-- هر نظر این ساختار رو خواهد داشت -->
+          <!--
+          <div class="comment">
+            <p class="comment-text">عالی</p>
+            <div class="comment-meta">۲ روز پیش - ۲ رای</div>
+            <button class="btn-reply">پاسخ</button>
+
+            <form class="reply-form hidden">
+              <input type="text" placeholder="نام شما">
+              <textarea placeholder="پاسخ شما..."></textarea>
+              <button type="submit">ارسال پاسخ</button>
+            </form>
+          </div>
+          -->
+        </div>
       </div>
     </div>
   </div>
 
   <!-- 🔹 فوتر -->
   <footer class="site-footer" id="contact">
-    ...
+    <p>© 2025 سامانه پزشکان برتر - تمامی حقوق محفوظ است</p>
   </footer>
 
   <!-- 🔹 دکمه واتساپ ثابت -->
   <div class="whatsapp-fixed">
-    <a href="https://wa.me/989362951509" target="_blank">
+    <a href="https://wa.me/989362951509" target="_blank" rel="noopener noreferrer">
       <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" 
            alt="پشتیبانی واتساپ" width="60" height="60">
     </a>
