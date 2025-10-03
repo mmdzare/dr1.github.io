@@ -8,14 +8,24 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
 // ===============================
-// 📌 شناسه یکتا برای هر کاربر (برای رأی و امتیاز)
+// 📌 تولید و ذخیره شناسه یکتا برای هر کاربر (Client Token)
 // ===============================
 function getClientToken() {
   let token = localStorage.getItem("client_token");
+
   if (!token) {
-    token = Math.random().toString(36).substring(2) + Date.now();
+    // 📌 اگر مرورگر از crypto.randomUUID پشتیبانی کند
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      token = crypto.randomUUID();
+    } else {
+      // 📌 fallback برای مرورگرهای قدیمی
+      token =
+        Math.random().toString(36).substring(2, 10) + "-" + Date.now().toString(36);
+    }
+
     localStorage.setItem("client_token", token);
   }
+
   return token;
 }
 
@@ -122,7 +132,7 @@ async function rateDoctor(doctorId, value) {
 }
 
 // ===============================
-// 📌 لود پزشکان و ساخت کارت‌ها (از Supabase) — نسخه اصلاح‌شده
+// 📌 لود پزشکان و ساخت کارت‌ها (از Supabase)
 // ===============================
 async function loadDoctors() {
   try {
@@ -143,8 +153,11 @@ async function loadDoctors() {
     }
     list.innerHTML = "";
 
-    for (let doc of doctors) {
-      const avgRating = await getDoctorRating(doc.id);
+    // 📌 گرفتن همه‌ی امتیازها به صورت موازی
+    const ratings = await Promise.all(doctors.map(d => getDoctorRating(d.id)));
+
+    doctors.forEach((doc, index) => {
+      const avgRating = ratings[index];
 
       // 📌 انتخاب تصویر با fallback
       const imgSrc =
@@ -158,23 +171,21 @@ async function loadDoctors() {
       if (pageUrl && typeof pageUrl === "string") {
         pageUrl = pageUrl.trim();
 
-        // اگر فقط یوزرنیم بود (بدون http و بدون instagram.com)
         if (!/^https?:\/\//i.test(pageUrl)) {
           if (!pageUrl.includes("instagram.com")) {
-            // فقط یوزرنیم → تبدیل به لینک کامل اینستاگرام
             pageUrl = "https://instagram.com/" + pageUrl.replace(/^@/, "");
           } else {
-            // اگر instagram.com بود ولی http نداشت
             pageUrl = "https://" + pageUrl.replace(/^\/+/, "");
           }
         }
 
-        // متن کوتاه برای نمایش داخل کارت
         displayUrl = pageUrl.replace(/^https?:\/\//i, "");
       }
 
       const card = document.createElement("div");
       card.className = "doctor-card";
+      card.setAttribute("data-doctor-id", doc.id);
+      card.setAttribute("data-doctor-name", doc.name);
 
       card.innerHTML = `
         <img src="${imgSrc}" 
@@ -188,7 +199,7 @@ async function loadDoctors() {
           ${doc.city ? `<p><i class="fa-solid fa-location-dot"></i> ${doc.city}</p>` : ""}
           ${doc.phone ? `<p><i class="fa-solid fa-phone"></i> ${doc.phone}</p>` : ""}
           ${pageUrl ? `<p><i class="fa-brands fa-instagram"></i> 
-            <a href="${pageUrl}" target="_blank" rel="noopener">${displayUrl}</a></p>` : ""}
+            <a href="${pageUrl}" target="_blank" rel="noopener noreferrer">${displayUrl}</a></p>` : ""}
           ${doc.address ? `<p><i class="fa-solid fa-house"></i> ${doc.address}</p>` : ""}
           ${doc.work_hours ? `<p><i class="fa-solid fa-clock"></i> ${doc.work_hours}</p>` : ""}
           <div class="doctor-rating" data-doctor-id="${doc.id}">
@@ -213,7 +224,7 @@ async function loadDoctors() {
 
       // 📌 راه‌اندازی تیکر نظرات
       initCommentsTicker(card, doc.name);
-    }
+    });
 
     wireMoreCommentsButtons();
 
@@ -221,18 +232,19 @@ async function loadDoctors() {
     console.error("❌ خطای غیرمنتظره در loadDoctors:", err);
   }
 }
+
 // ===============================
 // 📌 اتصال دکمه‌های «نظرات بیشتر» به مودال
 // ===============================
 function wireMoreCommentsButtons() {
   const buttons = document.querySelectorAll(".btn-more-comments");
 
-  if (!buttons.length) {
-    console.warn("⚠️ هیچ دکمه‌ای برای نظرات بیشتر پیدا نشد.");
-    return;
-  }
-
   buttons.forEach(btn => {
+    // جلوگیری از دوبار بایند شدن
+    btn.replaceWith(btn.cloneNode(true));
+  });
+
+  document.querySelectorAll(".btn-more-comments").forEach(btn => {
     const doctorId = btn.getAttribute("data-doctor-id");
     const doctorName = btn.getAttribute("data-doctor-name");
 
@@ -296,7 +308,7 @@ async function initCommentsTicker(card, doctorName) {
   track._intervalId = setInterval(showNext, 5000);
 }
 // ===============================
-// 📌 باز کردن مودال و نمایش نظرات کامل
+// 📌 باز کردن مودال و نمایش نظرات کامل (بدون ستاره‌ها)
 // ===============================
 async function openCommentsModal(doctorName, doctorId) {
   const modal = document.getElementById("comments-modal");
@@ -307,50 +319,57 @@ async function openCommentsModal(doctorName, doctorId) {
   modal.classList.remove("hidden");
 
   try {
-    // 📌 گرفتن اطلاعات پزشک
+    // 📌 گرفتن اطلاعات کامل پزشک
     const { data: doctor, error } = await client
       .from("doctors")
-      .select("name, specialty, image_url")
+      .select("id, name, specialty, image_url, city, phone, address, work_hours, extra_info, page_url")
       .eq("id", doctorId)
       .maybeSingle();
 
     if (error) {
       console.error("❌ خطا در دریافت پزشک:", error.message);
     }
+    if (!doctor) {
+      console.warn("⚠️ پزشک پیدا نشد.");
+      return;
+    }
 
     // 📌 پر کردن اطلاعات پزشک در مودال
     const avatarEl = modal.querySelector(".modal-doctor-avatar");
     const imgSrc =
-      doctor?.image_url && doctor.image_url.trim() !== ""
+      doctor.image_url && doctor.image_url.trim() !== ""
         ? doctor.image_url
         : DEFAULT_AVATAR;
 
     avatarEl.src = imgSrc;
-
-    // 📌 fallback اگر تصویر خراب بود
     avatarEl.onerror = () => {
       avatarEl.onerror = null;
       avatarEl.src = DEFAULT_AVATAR;
     };
 
-    modal.querySelector(".modal-doctor-name").textContent =
-      doctor?.name || doctorName;
-
-    modal.querySelector(".modal-doctor-specialty").textContent =
-      doctor?.specialty || "";
+    modal.querySelector(".modal-doctor-name").textContent = doctor.name || doctorName;
+    modal.querySelector(".modal-doctor-specialty").textContent = doctor.specialty || "";
+    modal.querySelector(".modal-doctor-city").textContent = doctor.city || "";
+    modal.querySelector(".modal-doctor-phone").textContent = doctor.phone ? "📞 " + doctor.phone : "";
+    modal.querySelector(".modal-doctor-address").textContent = doctor.address || "";
+    modal.querySelector(".modal-doctor-hours").textContent = doctor.work_hours ? "⏰ " + doctor.work_hours : "";
+    modal.querySelector(".modal-doctor-about").textContent = doctor.extra_info || "";
+    modal.querySelector(".modal-doctor-page").innerHTML = doctor.page_url 
+      ? `<a href="${doctor.page_url}" target="_blank" rel="noopener noreferrer">${doctor.page_url}</a>` 
+      : "";
 
     // 📌 نمایش نظرات
-    await renderFullComments(doctorName, doctorId);
+    await renderFullComments(doctor.name, doctor.id);
 
     // 📌 فرم ارسال نظر
     const form = document.getElementById("modal-comment-form");
     const showFormBtn = modal.querySelector(".btn-show-form");
 
-    if (showFormBtn) {
+    if (showFormBtn && form) {
       showFormBtn.onclick = () => form.classList.toggle("hidden");
-    }
 
-    if (form) {
+      // جلوگیری از دوبار بایند شدن
+      form.onsubmit = null;
       form.onsubmit = async (e) => {
         e.preventDefault();
         const user_name = document.getElementById("modal_user_name").value.trim();
@@ -360,7 +379,7 @@ async function openCommentsModal(doctorName, doctorId) {
 
         const { error: insertError } = await client.from("comments").insert([
           {
-            doctor_name: doctorName,
+            doctor_name: doctor.name,
             user_name,
             comment: comment_text,
             user_token: getClientToken(),
@@ -377,19 +396,19 @@ async function openCommentsModal(doctorName, doctorId) {
         form.classList.add("hidden");
 
         // 📌 بروزرسانی لیست نظرات
-        await renderFullComments(doctorName, doctorId);
+        await renderFullComments(doctor.name, doctor.id);
 
         // 📌 بروزرسانی تیکر
         document
-          .querySelectorAll(`.comments-ticker[data-doctor-name="${doctorName}"]`)
+          .querySelectorAll(`.comments-ticker[data-doctor-name="${doctor.name}"]`)
           .forEach((t) =>
-            initCommentsTicker(t.closest(".doctor-card"), doctorName)
+            initCommentsTicker(t.closest(".doctor-card"), doctor.name)
           );
       };
     }
 
-    // 📌 بستن مودال (با data-close)
-    modal.querySelectorAll("[data-close]").forEach(el => {
+    // 📌 بستن مودال (با data-close یا کلیک روی بک‌دراپ)
+    modal.querySelectorAll("[data-close], .modal-backdrop").forEach(el => {
       el.onclick = () => modal.classList.add("hidden");
     });
 
@@ -468,8 +487,8 @@ async function renderFullComments(doctorName, doctorId) {
         </div>
         <div class="comment-text">${safeText(c.comment)}</div>
         <div class="comment-actions">
-          <button class="btn-like">👍 ${likeCount}</button>
-          <button class="btn-dislike">👎 ${dislikeCount}</button>
+          <button class="btn-like">👍 <span>${likeCount}</span></button>
+          <button class="btn-dislike">👎 <span>${dislikeCount}</span></button>
           <button class="btn-reply">↩️ پاسخ</button>
         </div>
         <div id="reply-form-${c.id}" class="reply-form hidden">
@@ -497,16 +516,29 @@ async function renderFullComments(doctorName, doctorId) {
       item.appendChild(rlist);
 
       // 📌 اتصال رویدادها
-      item.querySelector(".btn-like").addEventListener("click", () =>
-        voteComment(c.id, "like", doctorName, doctorId)
-      );
-      item.querySelector(".btn-dislike").addEventListener("click", () =>
-        voteComment(c.id, "dislike", doctorName, doctorId)
-      );
-      item.querySelector(".btn-reply").addEventListener("click", () =>
-        toggleReplyForm(c.id)
-      );
-      item.querySelector(".btn-send-reply").addEventListener("click", () =>
+      const likeBtn = item.querySelector(".btn-like");
+      const dislikeBtn = item.querySelector(".btn-dislike");
+      const replyBtn = item.querySelector(".btn-reply");
+      const sendReplyBtn = item.querySelector(".btn-send-reply");
+
+      likeBtn.addEventListener("click", async () => {
+        await voteComment(c.id, "like", doctorName, doctorId);
+        likeBtn.querySelector("span").textContent = parseInt(likeBtn.querySelector("span").textContent) + 1;
+      });
+
+      dislikeBtn.addEventListener("click", async () => {
+        await voteComment(c.id, "dislike", doctorName, doctorId);
+        dislikeBtn.querySelector("span").textContent = parseInt(dislikeBtn.querySelector("span").textContent) + 1;
+      });
+
+      replyBtn.addEventListener("click", () => {
+        // بستن همه‌ی فرم‌های دیگر
+        document.querySelectorAll(".reply-form").forEach(f => f.classList.add("hidden"));
+        // باز کردن فقط فرم همین نظر
+        item.querySelector(".reply-form").classList.toggle("hidden");
+      });
+
+      sendReplyBtn.addEventListener("click", () =>
         sendReply(c.id, doctorName, doctorId)
       );
 
@@ -519,10 +551,14 @@ async function renderFullComments(doctorName, doctorId) {
 }
 
 // ===============================
-// 📌 ثبت رأی لایک/دیس‌لایک
+// 📌 ثبت رأی لایک/دیس‌لایک (Optimistic UI)
 // ===============================
 async function voteComment(commentId, type, doctorName, doctorId) {
   const clientId = getClientToken();
+  const commentEl = document.querySelector(`.comment-item[data-id="${commentId}"]`);
+  const likeBtn = commentEl?.querySelector(".btn-like span");
+  const dislikeBtn = commentEl?.querySelector(".btn-dislike span");
+
   try {
     const { data: existing } = await client
       .from("votes")
@@ -533,21 +569,27 @@ async function voteComment(commentId, type, doctorName, doctorId) {
 
     if (existing) {
       if (existing.type === type) {
-        // اگر دوباره روی همون رأی کلیک شد → حذف رأی
+        // حذف رأی
         await client.from("votes").delete().eq("id", existing.id);
+        if (type === "like" && likeBtn) likeBtn.textContent = +likeBtn.textContent - 1;
+        if (type === "dislike" && dislikeBtn) dislikeBtn.textContent = +dislikeBtn.textContent - 1;
       } else {
         // تغییر نوع رأی
         await client.from("votes").update({ type }).eq("id", existing.id);
+        if (type === "like") {
+          if (likeBtn) likeBtn.textContent = +likeBtn.textContent + 1;
+          if (dislikeBtn) dislikeBtn.textContent = +dislikeBtn.textContent - 1;
+        } else {
+          if (dislikeBtn) dislikeBtn.textContent = +dislikeBtn.textContent + 1;
+          if (likeBtn) likeBtn.textContent = +likeBtn.textContent - 1;
+        }
       }
     } else {
       // رأی جدید
-      await client.from("votes").insert([
-        { comment_id: commentId, client_id: clientId, type }
-      ]);
+      await client.from("votes").insert([{ comment_id: commentId, client_id: clientId, type }]);
+      if (type === "like" && likeBtn) likeBtn.textContent = +likeBtn.textContent + 1;
+      if (type === "dislike" && dislikeBtn) dislikeBtn.textContent = +dislikeBtn.textContent + 1;
     }
-
-    // 📌 رفرش لیست نظرات بعد از رأی
-    await renderFullComments(doctorName, doctorId);
   } catch (err) {
     console.error("❌ خطا در ثبت رأی:", err);
   }
@@ -557,50 +599,69 @@ async function voteComment(commentId, type, doctorName, doctorId) {
 // 📌 نمایش/مخفی‌سازی فرم پاسخ
 // ===============================
 function toggleReplyForm(commentId) {
-  // بستن همه‌ی فرم‌های دیگر
   document.querySelectorAll(".reply-form").forEach(f => {
     if (f.id !== `reply-form-${commentId}`) f.classList.add("hidden");
   });
 
-  // باز/بستن فرم انتخابی
   const form = document.getElementById(`reply-form-${commentId}`);
-  if (form) form.classList.toggle("hidden");
+  if (form) {
+    form.classList.toggle("hidden");
+    if (!form.classList.contains("hidden")) {
+      form.querySelector("input")?.focus();
+    }
+  }
 }
 
 // ===============================
-// 📌 ارسال پاسخ
+// 📌 ارسال پاسخ (بدون رفرش کل لیست)
 // ===============================
 async function sendReply(commentId, doctorName, doctorId) {
   const nameEl = document.getElementById(`reply_name_${commentId}`);
   const textEl = document.getElementById(`reply_text_${commentId}`);
+  const btn = document.querySelector(`#reply-form-${commentId} .btn-send-reply`);
+
   const name = nameEl.value.trim();
   const text = textEl.value.trim();
   if (!name || !text) return;
 
+  btn.disabled = true;
+
   try {
-    const { error } = await client.from("replies").insert([
+    const { data, error } = await client.from("replies").insert([
       {
         comment_id: commentId,
         name,
         text,
         ts: new Date().toISOString(),
       },
-    ]);
+    ]).select().single();
 
     if (error) {
       console.error("❌ خطا در ثبت پاسخ:", error.message);
       return;
     }
 
-    // پاک کردن و بستن فرم بعد از ارسال
+    // 📌 اضافه کردن پاسخ جدید به DOM بدون رفرش کل لیست
+    const rlist = document.querySelector(`.comment-item[data-id="${commentId}"] .reply-list`);
+    if (rlist && data) {
+      const ri = document.createElement("div");
+      ri.className = "reply-item";
+      ri.innerHTML = `
+        <div class="reply-content">${data.text.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
+        <div class="reply-meta">${data.name} • ${new Date(data.ts).toLocaleDateString("fa-IR")}</div>
+      `;
+      rlist.appendChild(ri);
+    }
+
+    // پاک کردن و بستن فرم
     nameEl.value = "";
     textEl.value = "";
     document.getElementById(`reply-form-${commentId}`).classList.add("hidden");
 
-    // 📌 رفرش لیست نظرات
-    await renderFullComments(doctorName, doctorId);
   } catch (err) {
     console.error("❌ خطای غیرمنتظره در ثبت پاسخ:", err);
+  } finally {
+    btn.disabled = false;
   }
 }
 // ===============================
