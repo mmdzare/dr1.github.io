@@ -187,6 +187,9 @@ async function loadDoctors() {
       card.setAttribute("data-doctor-id", doc.id);
       card.setAttribute("data-doctor-name", doc.name);
 
+      // ✨ اینجا index رو به صورت متغیر CSS ست می‌کنیم
+      card.style.setProperty("--i", index);
+
       card.innerHTML = `
         <img src="${imgSrc}" 
              class="doctor-avatar" 
@@ -347,18 +350,34 @@ async function openCommentsModal(doctorName, doctorId) {
       avatarEl.src = DEFAULT_AVATAR;
     };
 
-    modal.querySelector(".modal-doctor-name").textContent = doctor.name || doctorName;
-    modal.querySelector(".modal-doctor-specialty").textContent = doctor.specialty || "";
-    modal.querySelector(".modal-doctor-city").textContent = doctor.city || "";
-    modal.querySelector(".modal-doctor-phone").textContent = doctor.phone ? "📞 " + doctor.phone : "";
-    modal.querySelector(".modal-doctor-address").textContent = doctor.address || "";
-    modal.querySelector(".modal-doctor-hours").textContent = doctor.work_hours ? "⏰ " + doctor.work_hours : "";
-    modal.querySelector(".modal-doctor-about").textContent = doctor.extra_info || "";
-    modal.querySelector(".modal-doctor-page").innerHTML = doctor.page_url 
-      ? `<a href="${doctor.page_url}" target="_blank" rel="noopener noreferrer">${doctor.page_url}</a>` 
-      : "";
+    // ✨ پر کردن فیلدها همراه با آیکون‌ها
+    modal.querySelector(".modal-doctor-name").innerHTML =
+      `<i class="fa-solid fa-user-doctor"></i> ${doctor.name || doctorName}`;
 
-    // 📌 نمایش نظرات
+    modal.querySelector(".modal-doctor-specialty").innerHTML =
+      doctor.specialty ? `<i class="fa-solid fa-briefcase-medical"></i> ${doctor.specialty}` : "";
+
+    modal.querySelector(".modal-doctor-city").innerHTML =
+      doctor.city ? `<i class="fa-solid fa-location-dot"></i> ${doctor.city}` : "";
+
+    modal.querySelector(".modal-doctor-phone").innerHTML =
+      doctor.phone ? `<i class="fa-solid fa-phone"></i> ${doctor.phone}` : "";
+
+    modal.querySelector(".modal-doctor-address").innerHTML =
+      doctor.address ? `<i class="fa-solid fa-house"></i> ${doctor.address}` : "";
+
+    modal.querySelector(".modal-doctor-hours").innerHTML =
+      doctor.work_hours ? `<i class="fa-solid fa-clock"></i> ${doctor.work_hours}` : "";
+
+    modal.querySelector(".modal-doctor-about").innerHTML =
+      doctor.extra_info ? `<i class="fa-solid fa-circle-info"></i> ${doctor.extra_info}` : "";
+
+    modal.querySelector(".modal-doctor-page").innerHTML =
+      doctor.page_url
+        ? `<i class="fa-brands fa-instagram"></i> <a href="${doctor.page_url}" target="_blank" rel="noopener noreferrer">${doctor.page_url}</a>`
+        : "";
+
+    // 📌 نمایش نظرات اولیه
     await renderFullComments(doctor.name, doctor.id);
 
     // 📌 فرم ارسال نظر
@@ -377,33 +396,59 @@ async function openCommentsModal(doctorName, doctorId) {
 
         if (!user_name || !comment_text) return;
 
-        const { error: insertError } = await client.from("comments").insert([
-          {
-            doctor_name: doctor.name,
-            user_name,
-            comment: comment_text,
-            user_token: getClientToken(),
-            approved: null,
-          },
-        ]);
+        try {
+          const { data, error: insertError } = await client.from("comments").insert([
+            {
+              doctor_name: doctor.name,
+              user_name,
+              comment: comment_text,
+              user_token: getClientToken(),
+              approved: null,
+            },
+          ]).select().single();
 
-        if (insertError) {
-          console.error("❌ خطا در ثبت نظر:", insertError.message);
-          return;
+          if (insertError) {
+            console.error("❌ خطا در ثبت نظر:", insertError.message);
+            return;
+          }
+
+          // 📌 اضافه کردن نظر جدید به DOM بدون رفرش کل لیست
+          const wrap = document.querySelector("#comments-modal .comments-list");
+          if (wrap && data) {
+            const item = document.createElement("div");
+            item.className = "comment-item";
+            item.setAttribute("data-id", data.id);
+
+            item.innerHTML = `
+              <div class="comment-meta">
+                ${data.user_name} • همین الان • ⏳ در انتظار بررسی
+              </div>
+              <div class="comment-text">${data.comment.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
+              <div class="comment-actions">
+                <button class="btn-like">👍 <span>0</span></button>
+                <button class="btn-dislike">👎 <span>0</span></button>
+                <button class="btn-reply">↩️ پاسخ</button>
+              </div>
+              <div class="reply-list"></div>
+            `;
+
+            wrap.prepend(item);
+          }
+
+          // پاک کردن فرم
+          form.reset();
+          form.classList.add("hidden");
+
+          // 📌 بروزرسانی تیکر (فقط همون بخش)
+          document
+            .querySelectorAll(`.comments-ticker[data-doctor-name="${doctor.name}"]`)
+            .forEach((t) =>
+              initCommentsTicker(t.closest(".doctor-card"), doctor.name)
+            );
+
+        } catch (err) {
+          console.error("❌ خطای غیرمنتظره در ثبت نظر:", err);
         }
-
-        form.reset();
-        form.classList.add("hidden");
-
-        // 📌 بروزرسانی لیست نظرات
-        await renderFullComments(doctor.name, doctor.id);
-
-        // 📌 بروزرسانی تیکر
-        document
-          .querySelectorAll(`.comments-ticker[data-doctor-name="${doctor.name}"]`)
-          .forEach((t) =>
-            initCommentsTicker(t.closest(".doctor-card"), doctor.name)
-          );
       };
     }
 
@@ -475,6 +520,7 @@ async function renderFullComments(doctorName, doctorId) {
 
       const item = document.createElement("div");
       item.className = "comment-item";
+      item.setAttribute("data-id", c.id);
 
       // وضعیت تأیید
       let status = "⏳ در انتظار بررسی";
@@ -491,16 +537,11 @@ async function renderFullComments(doctorName, doctorId) {
           <button class="btn-dislike">👎 <span>${dislikeCount}</span></button>
           <button class="btn-reply">↩️ پاسخ</button>
         </div>
-        <div id="reply-form-${c.id}" class="reply-form hidden">
-          <input type="text" id="reply_name_${c.id}" placeholder="نام شما">
-          <textarea id="reply_text_${c.id}" placeholder="پاسخ شما"></textarea>
-          <button class="btn-send-reply">ارسال پاسخ</button>
-        </div>
+        <div class="reply-list"></div>
       `;
 
       // 📌 نمایش پاسخ‌ها
-      const rlist = document.createElement("div");
-      rlist.className = "reply-list";
+      const rlist = item.querySelector(".reply-list");
       const relatedReplies = (replies || []).filter((r) => r.comment_id === c.id);
 
       relatedReplies.forEach((r) => {
@@ -513,34 +554,42 @@ async function renderFullComments(doctorName, doctorId) {
         rlist.appendChild(ri);
       });
 
-      item.appendChild(rlist);
-
       // 📌 اتصال رویدادها
       const likeBtn = item.querySelector(".btn-like");
       const dislikeBtn = item.querySelector(".btn-dislike");
       const replyBtn = item.querySelector(".btn-reply");
-      const sendReplyBtn = item.querySelector(".btn-send-reply");
 
-      likeBtn.addEventListener("click", async () => {
-        await voteComment(c.id, "like", doctorName, doctorId);
-        likeBtn.querySelector("span").textContent = parseInt(likeBtn.querySelector("span").textContent) + 1;
-      });
+      likeBtn.addEventListener("click", () =>
+        voteComment(c.id, "like", doctorName, doctorId)
+      );
 
-      dislikeBtn.addEventListener("click", async () => {
-        await voteComment(c.id, "dislike", doctorName, doctorId);
-        dislikeBtn.querySelector("span").textContent = parseInt(dislikeBtn.querySelector("span").textContent) + 1;
-      });
+      dislikeBtn.addEventListener("click", () =>
+        voteComment(c.id, "dislike", doctorName, doctorId)
+      );
 
+      // 📌 فقط وقتی روی «پاسخ» کلیک شد، فرم ساخته می‌شود
       replyBtn.addEventListener("click", () => {
         // بستن همه‌ی فرم‌های دیگر
-        document.querySelectorAll(".reply-form").forEach(f => f.classList.add("hidden"));
-        // باز کردن فقط فرم همین نظر
-        item.querySelector(".reply-form").classList.toggle("hidden");
-      });
+        document.querySelectorAll(".reply-form").forEach(f => f.remove());
 
-      sendReplyBtn.addEventListener("click", () =>
-        sendReply(c.id, doctorName, doctorId)
-      );
+        let form = item.querySelector(".reply-form");
+        if (!form) {
+          form = document.createElement("div");
+          form.className = "reply-form";
+          form.innerHTML = `
+            <input type="text" id="reply_name_${c.id}" placeholder="نام شما">
+            <textarea id="reply_text_${c.id}" placeholder="پاسخ شما"></textarea>
+            <button class="btn-send-reply">ارسال پاسخ</button>
+          `;
+          item.appendChild(form);
+
+          form.querySelector(".btn-send-reply").addEventListener("click", () =>
+            sendReply(c.id, doctorName, doctorId)
+          );
+        } else {
+          form.remove(); // اگر وجود داشت → حذف کن
+        }
+      });
 
       wrap.appendChild(item);
     });
@@ -616,9 +665,12 @@ function toggleReplyForm(commentId) {
 // 📌 ارسال پاسخ (بدون رفرش کل لیست)
 // ===============================
 async function sendReply(commentId, doctorName, doctorId) {
-  const nameEl = document.getElementById(`reply_name_${commentId}`);
-  const textEl = document.getElementById(`reply_text_${commentId}`);
-  const btn = document.querySelector(`#reply-form-${commentId} .btn-send-reply`);
+  const form = document.getElementById(`reply-form-${commentId}`);
+  if (!form) return;
+
+  const nameEl = form.querySelector(`#reply_name_${commentId}`);
+  const textEl = form.querySelector(`#reply_text_${commentId}`);
+  const btn = form.querySelector(".btn-send-reply");
 
   const name = nameEl.value.trim();
   const text = textEl.value.trim();
@@ -627,14 +679,18 @@ async function sendReply(commentId, doctorName, doctorId) {
   btn.disabled = true;
 
   try {
-    const { data, error } = await client.from("replies").insert([
-      {
-        comment_id: commentId,
-        name,
-        text,
-        ts: new Date().toISOString(),
-      },
-    ]).select().single();
+    const { data, error } = await client
+      .from("replies")
+      .insert([
+        {
+          comment_id: commentId,
+          name,
+          text,
+          ts: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single();
 
     if (error) {
       console.error("❌ خطا در ثبت پاسخ:", error.message);
@@ -642,21 +698,32 @@ async function sendReply(commentId, doctorName, doctorId) {
     }
 
     // 📌 اضافه کردن پاسخ جدید به DOM بدون رفرش کل لیست
-    const rlist = document.querySelector(`.comment-item[data-id="${commentId}"] .reply-list`);
+    const rlist = document.querySelector(
+      `.comment-item[data-id="${commentId}"] .reply-list`
+    );
     if (rlist && data) {
       const ri = document.createElement("div");
       ri.className = "reply-item";
       ri.innerHTML = `
-        <div class="reply-content">${data.text.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div>
+        <div class="reply-content">${data.text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
         <div class="reply-meta">${data.name} • ${new Date(data.ts).toLocaleDateString("fa-IR")}</div>
       `;
       rlist.appendChild(ri);
+
+      // 📌 انیمیشن نرم برای اضافه شدن پاسخ
+      ri.style.opacity = "0";
+      ri.style.transform = "translateY(8px)";
+      requestAnimationFrame(() => {
+        ri.style.transition = "all 0.3s ease";
+        ri.style.opacity = "1";
+        ri.style.transform = "translateY(0)";
+      });
     }
 
-    // پاک کردن و بستن فرم
+    // 📌 پاک کردن و بستن فرم
     nameEl.value = "";
     textEl.value = "";
-    document.getElementById(`reply-form-${commentId}`).classList.add("hidden");
+    form.classList.add("hidden");
 
   } catch (err) {
     console.error("❌ خطای غیرمنتظره در ثبت پاسخ:", err);
