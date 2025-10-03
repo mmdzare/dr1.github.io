@@ -20,6 +20,18 @@ body {
   margin: auto;
 }
 
+/* 🎬 انیمیشن ورود کارت پزشک */
+@keyframes fadeUp {
+  from {
+    transform: translateY(40px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
 /* 🔹 کارت پزشک */
 .doctor-card {
   background: #fff;
@@ -28,13 +40,19 @@ body {
   padding: 18px 16px;
   text-align: left;
   transition: transform .3s, box-shadow .3s;
-  animation: fadeUp .6s ease both;
   display: flex;
   flex-direction: column;
   justify-content: space-between;   /* محتوا بالا و پایین */
   align-items: center;
   height: 100%;                     /* کارت ارتفاع کامل بگیره */
+
+  /* ✨ انیمیشن cascade */
+  opacity: 0;
+  animation: fadeUp 0.6s ease forwards;
+  animation-delay: calc(var(--i, 0) * 0.40s); /* هر کارت با تأخیر متفاوت */
+  will-change: transform, opacity; /* بهبود عملکرد */
 }
+
 .doctor-card:hover {
   transform: translateY(-6px) scale(1.02);
   box-shadow: 0 12px 28px rgba(37,99,235,.25);
@@ -189,29 +207,35 @@ body {
 }
 /* 🔹 دکمه‌ها */
 button {
-  border: none; cursor: pointer;
+  border: none;
+  cursor: pointer;
   border-radius: 6px;
-  transition: background .2s, transform .2s;
+  transition: background .25s ease, transform .25s ease, box-shadow .25s ease;
+}
+button:active {
+  transform: scale(0.96);
 }
 .btn-more-comments {
   background: #2563eb;
   color: #fff;
-  padding: 6px 12px;
+  padding: 6px 14px;
   font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(37,99,235,0.3);
 }
 .btn-more-comments:hover {
   background: #1d4ed8;
   transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(37,99,235,0.4);
 }
+
 /* 🔹 مودال نظرات */
-#comments-modal.hidden { 
-  display: none; 
-}
+#comments-modal.hidden { display: none; }
 #comments-modal {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  display: flex;              /* 📌 مرکز کردن کارت */
+  display: flex;
   justify-content: center;
   align-items: center;
 }
@@ -221,38 +245,55 @@ button {
   position: absolute;
   inset: 0;
   backdrop-filter: blur(6px);
-  background: rgba(0,0,0,0.45); /* کمی تیره‌تر برای تمرکز بیشتر */
+  background: rgba(0,0,0,0.45);
 }
 
 /* 🔹 کارت مودال */
 .modal-card {
   position: relative;
-  width: min(800px, 92vw);     /* کمی کوچکتر برای زیبایی */
+  width: min(800px, 92vw);
   max-height: 85vh;
   background: #fff;
-  border-radius: 14px;
+  border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;            /* 📌 اسکرول داخلی اگر محتوا زیاد شد */
+  overflow-y: auto;
   z-index: 1;
-  animation: fadeUp .35s ease both; /* 📌 انیمیشن ورود */
+  animation: modalEnter 0.45s cubic-bezier(.25,.8,.25,1) forwards;
+}
+
+/* 🔹 انیمیشن ورود */
+@keyframes modalEnter {
+  0%   { opacity: 0; transform: translateY(40px) scale(0.95); }
+  60%  { opacity: 1; transform: translateY(-6px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* 🔹 دکمه بستن */
 .modal-close {
   position: absolute;
-  top: 10px;
-  left: 12px;
+  top: 12px;
+  left: 14px;
   font-size: 22px;
   background: none;
   border: none;
   cursor: pointer;
   color: #666;
-  transition: color .2s;
+  transition: all .25s ease;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.modal-close:hover { color: #000; }
+.modal-close:hover {
+  color: #fff;
+  background: #2563eb;
+  box-shadow: 0 0 8px rgba(37,99,235,0.4);
+}
 
 /* 🔹 هدر مودال */
 .modal-header {
@@ -269,176 +310,231 @@ button {
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #ddd;
+  flex-shrink: 0;
 }
+.modal-doctor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 🔹 نام پزشک */
 .modal-doctor-name { 
   font-size: 18px; 
   font-weight: bold; 
   color: #222;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+
+/* 🔹 تخصص */
 .modal-doctor-specialty { 
-  font-size: 13px; 
-  color: #666; 
+  font-size: 14px; 
+  color: #444; 
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* 🔹 انیمیشن ورود */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* 🔹 فرم ارسال نظر */
-#modal-comment-form {
-  display: grid;
-  gap: 10px;
-  margin: 14px 0;
-}
-#modal-comment-form input,
-#modal-comment-form textarea {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 10px;
-  font-size: 14px;
-  transition: border-color .2s, box-shadow .2s;
-}
-#modal-comment-form input:focus,
-#modal-comment-form textarea:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 2px rgba(16,185,129,0.2);
-  outline: none;
-}
-#modal-comment-form textarea {
-  resize: vertical;
-  min-height: 60px;
-}
-#modal-comment-form button {
-  background: #10b981;
-  color: #fff;
-  padding: 8px 12px;
+/* 🔹 سایر اطلاعات */
+.modal-doctor-info p {
+  font-size: 13.5px;
+  color: #555;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.6;
+  padding: 2px 4px;
   border-radius: 6px;
-  transition: background .2s;
+  transition: background .25s ease, color .25s ease;
 }
-#modal-comment-form button:hover {
-  background: #059669;
+.modal-doctor-info p:hover {
+  background: #f9fafb;
+  color: #111;
 }
 
-/* 🔹 لیست نظرات */
+/* 🔹 آیکون‌ها */
+.modal-header i {
+  color: #2563eb;
+  font-size: 15px;
+  min-width: 18px;
+  text-align: center;
+  transition: transform .25s ease, text-shadow .25s ease;
+}
+.modal-header i:hover {
+  transform: scale(1.15);
+  text-shadow: 0 0 6px rgba(37,99,235,0.4);
+}
+
+/* 💬 لیست نظرات */
 .comments-list {
-  margin-top: 10px;
-  max-height: 50vh;   /* 📌 محدودیت ارتفاع برای اسکرول */
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 .comment-item {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 12px;
-  margin-top: 10px;
-  font-size: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.04);
-  animation: fadeUp .5s ease both;
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 12px 15px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.comment-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 .comment-meta {
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 0.8rem;
+  color: #888;
   margin-bottom: 6px;
 }
+.comment-text {
+  font-size: 1rem;
+  margin-bottom: 10px;
+  color: #333;
+}
+/* 🔘 دکمه‌های اکشن */
 .comment-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 6px;
+  gap: 10px;
 }
 .comment-actions button {
-  background: #f1f5f9;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 13px;
-  min-width: 60px;
-  transition: all .2s;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
 }
 .comment-actions button:hover {
-  background: #e2e8f0;
-  transform: scale(1.05);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  background: #e0e0e0;
 }
-.like-btn { color: #16a34a; }
-.dislike-btn { color: #dc2626; }
-.reply-btn { color: #2563eb; }
 
-/* 🔹 پاسخ‌ها */
+/* ↩️ فرم پاسخ */
 .reply-form {
-  margin-top: 12px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  animation: fadeIn 0.3s ease;
 }
 .reply-form input,
 .reply-form textarea {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  width: 100%;
+  border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 14px;
+  padding: 8px;
+  font-size: 0.9rem;
 }
-.reply-form input:focus,
-.reply-form textarea:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
-  outline: none;
-}
-.reply-form button.reply-send {
-  background: #10b981;
+.reply-form button {
+  align-self: flex-end;
+  background: #4CAF50;
   color: #fff;
+  border: none;
+  border-radius: 6px;
   padding: 6px 14px;
-  border-radius: 999px;
-  transition: background .2s;
+  cursor: pointer;
+  transition: background 0.2s;
 }
-.reply-form button.reply-send:hover {
-  background: #059669;
+.reply-form button:hover {
+  background: #43a047;
 }
 
-.replies-list {
-  margin-top: 10px;
-  padding-right: 16px;
-  border-right: 2px solid #e5e7eb;
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 📌 پاسخ‌ها */
+.reply-list {
+  margin-top: 8px;
+  padding-left: 15px;
+  border-left: 2px solid #eee;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
-
 .reply-item {
-  background: #f3f4f6;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.6;
-  animation: fadeUp .4s ease both;
-  border-right: 3px solid #d1d5db; /* 📌 تمایز بیشتر */
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  color: #444;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.reply-meta {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 3px;
 }
 
-.reply-meta {
-  display: block;
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 4px;
+/* 📝 فرم ثبت نظر اصلی */
+#modal-comment-form {
+  margin: 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#modal-comment-form input,
+#modal-comment-form textarea {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  transition: border-color .25s ease, box-shadow .25s ease;
+  outline: none;
+  resize: vertical;
+}
+
+#modal-comment-form input:focus,
+#modal-comment-form textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+/* 🔹 دکمه ارسال */
+#modal-comment-form button {
+  align-self: flex-end;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .25s ease, transform .2s ease, box-shadow .25s ease;
+}
+
+#modal-comment-form button:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(37,99,235,0.3);
+}
+
+#modal-comment-form button:active {
+  transform: scale(0.96);
 }
 
 /* 📌 دکمه مینیمال ادامه پاسخ‌ها */
 .show-more-replies {
   background: none;
   border: none;
-  color: #0077cc;
+  color: #2563eb;
   font-size: 0.9rem;
   padding: 4px 8px;
   margin-top: 6px;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: color 0.2s ease, text-decoration .2s ease;
   display: inline-block;
 }
+
 .show-more-replies:hover {
-  color: #005999;
+  color: #1d4ed8;
   text-decoration: underline;
 }
 
@@ -553,6 +649,8 @@ main {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
 }
+
+
 
 
 
