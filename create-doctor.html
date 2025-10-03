@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <title>افزودن پزشک جدید</title>
@@ -7,6 +7,10 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+    }
     form label {
       display: block;
       margin-top: 12px;
@@ -29,10 +33,20 @@
       margin-top: 16px;
       font-size: 16px;
     }
+    button {
+      margin-top: 16px;
+      background: #00bcd4;
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+    }
   </style>
 </head>
 <body>
-  <h1 style="text-align:center;">افزودن پزشک جدید</h1>
+  <h1 style="text-align:center;">➕ افزودن پزشک جدید</h1>
 
   <form id="doctor-form" style="max-width:600px; margin:20px auto; padding:20px; background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1);">
     <label>نام پزشک:</label>
@@ -45,7 +59,7 @@
     <input type="text" id="city" required>
 
     <label>لینک عکس (اختیاری):</label>
-    <input type="text" id="image_url">
+    <input type="text" id="image_url" placeholder="اگر خالی بماند، آواتار پیش‌فرض ست می‌شود">
 
     <label>شماره تماس:</label>
     <input type="text" id="phone">
@@ -65,16 +79,20 @@
     <label>اطلاعات اضافه:</label>
     <textarea id="extra_info"></textarea>
 
-    <button type="submit" style="margin-top:16px; background:#00bcd4; color:#fff; border:none; padding:10px 16px; border-radius:6px; cursor:pointer; font-size:15px;">ثبت پزشک</button>
+    <button type="submit">ثبت پزشک</button>
   </form>
 
   <p id="status" style="text-align:center; font-weight:bold;"></p>
 
   <script>
+    // 📌 اتصال به Supabase
     const client = supabase.createClient(
       'https://lzfonyofgwfiwzsloqjp.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY'
     );
+
+    // 📌 آواتار پیش‌فرض (فایل لوکال dr.png)
+    const DEFAULT_AVATAR = "assets/img/dr.png";
 
     const form = document.getElementById('doctor-form');
     const status = document.getElementById('status');
@@ -93,7 +111,8 @@
       const rating = parseFloat(document.getElementById('rating').value) || null;
       const extra_info = document.getElementById('extra_info').value.trim();
 
-      const image_url = imageInput || null;
+      // 📌 اگر کاربر لینک عکس نداد، آواتار پیش‌فرض ست می‌شود
+      const image_url = imageInput !== "" ? imageInput : DEFAULT_AVATAR;
 
       const { error } = await client.from('doctors').insert([
         { name, specialty, city, image_url, phone, page_url, address, work_hours, rating, extra_info }
