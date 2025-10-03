@@ -1,52 +1,124 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>معرفی پزشکان برتر</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سامانه پزشکان برتر</title>
+
+  <!-- استایل اصلی -->
   <link rel="stylesheet" href="assets/css/style.css">
+
+  <!-- آیکون‌ها -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <!-- لینک ورود به پنل مدیریت -->
-  <div style="text-align: left; margin-bottom: 1rem;">
+
+  <!-- 🔹 لینک ورود به پنل مدیریت -->
+  <div class="admin-bar">
     <a href="comments.html" class="admin-link">پنل مدیریت</a>
   </div>
 
-  <!-- منو -->
-  <nav>
-    <a href="#doctors">معرفی پزشکان</a>
-    <a href="#contact">تماس با ما</a>
-  </nav>
-
-  <!-- هدر -->
-  <header>
-    <h1>معرفی پزشکان برتر</h1>
-    <p>کارت‌های داینامیک از Supabase + نظرات و پشتیبانی آنلاین</p>
+  <!-- 🔹 هدر -->
+  <header class="site-header">
+    <div class="container">
+      <div class="logo">🩺 سامانه پزشکان برتر</div>
+      <nav class="nav">
+        <a href="#home">خانه</a>
+        <a href="#doctors">پزشکان</a>
+        <a href="#about">درباره ما</a>
+        <a href="#contact">تماس با ما</a>
+      </nav>
+      <button class="btn-primary" onclick="openCreateDoctor()">+ افزودن پزشک</button>
+    </div>
   </header>
 
-  <!-- کارت پزشکان -->
-  <div class="container" id="doctors">
-    <!-- کارت‌ها از Supabase لود می‌شن -->
+  <!-- 🔹 بخش معرفی -->
+  <section id="home" class="hero">
+    <div class="container">
+      <h1>معرفی پزشکان برتر</h1>
+      <p>کارت‌های داینامیک از Supabase + نظرات کاربران + پشتیبانی آنلاین</p>
+    </div>
+  </section>
+
+  <!-- 🔹 لیست پزشکان -->
+  <main class="container" id="doctors">
+    <h2 class="section-title">لیست پزشکان</h2>
+    <div id="doctors-list" class="doctors-grid">
+      <!-- کارت پزشکان با جاوااسکریپت از Supabase ساخته می‌شوند -->
+    </div>
+  </main>
+
+  <!-- 🔹 مودال نمایش کامل نظرات -->
+  <div id="comments-modal" class="comments-modal hidden">
+    <div class="modal-backdrop" data-close="1"></div>
+    <div class="modal-card">
+      <button class="modal-close" data-close="1">×</button>
+
+      <div class="modal-header">
+        <img class="modal-doctor-avatar" src="" alt="">
+        <div class="modal-doctor-info">
+          <h3 class="modal-doctor-name"></h3>
+          <p class="modal-doctor-specialty"></p>
+        </div>
+      </div>
+
+      <!-- دکمه نمایش فرم -->
+      <button class="btn-show-form">➕ ثبت نظر</button>
+
+      <!-- فرم ارسال نظر -->
+      <form id="modal-comment-form" class="hidden">
+        <input type="text" id="modal_user_name" placeholder="نام شما" required>
+        <textarea id="modal_comment_text" placeholder="نظر شما..." required></textarea>
+        <button type="submit">ارسال نظر</button>
+      </form>
+
+      <!-- لیست نظرات -->
+      <div class="modal-comments">
+        <div class="comments-list"></div>
+      </div>
+    </div>
   </div>
 
-  <!-- فوتر -->
-  <footer id="contact">
-    <p>تماس با ما: info@example.com | تلفن: 021-xxxxxxx</p>
+  <!-- 🔹 فوتر -->
+  <footer class="site-footer" id="contact">
+    <div class="footer-container">
+      <div class="footer-col">
+        <h4>درباره ما</h4>
+        <p>سامانه معرفی پزشکان با امکان ثبت نظر و امتیازدهی.</p>
+      </div>
+      <div class="footer-col">
+        <h4>لینک‌ها</h4>
+        <a href="#home">خانه</a>
+        <a href="#doctors">پزشکان</a>
+        <a href="comments.html">پنل مدیریت</a>
+        <a href="#contact">تماس با ما</a>
+      </div>
+      <div class="footer-col">
+        <h4>شبکه‌های اجتماعی</h4>
+        <div class="social-icons">
+          <a href="#" class="social-icon instagram"><i class="fab fa-instagram"></i></a>
+          <a href="#" class="social-icon telegram"><i class="fab fa-telegram"></i></a>
+          <a href="https://wa.me/989362951509" target="_blank" class="social-icon whatsapp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      © 2025 تمامی حقوق محفوظ است.
+    </div>
   </footer>
 
-  <!-- دکمه واتساپ ثابت پایین صفحه -->
-  <div style="position:fixed; bottom:20px; left:20px; z-index:999;">
+  <!-- 🔹 دکمه واتساپ ثابت -->
+  <div class="whatsapp-fixed">
     <a href="https://wa.me/989362951509" target="_blank">
       <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" 
-           alt="پشتیبانی واتساپ" width="60" height="60"
-           style="border-radius:50%; box-shadow:0 4px 10px rgba(0,0,0,0.3);">
+           alt="پشتیبانی واتساپ" width="60" height="60">
     </a>
   </div>
 
-  <!-- اسکریپت اصلی -->
+  <!-- 🔹 اسکریپت‌ها -->
   <script src="assets/js/script.js"></script>
 </body>
 </html>
