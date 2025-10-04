@@ -54,40 +54,29 @@
   <!-- 🔹 مودال نمایش کامل نظرات -->
   <div id="comments-modal" class="comments-modal hidden">
     <div class="modal-backdrop" data-close="1"></div>
-    <div class="modal-card">
-      <button class="modal-close" data-close="1">×</button>
 
-      <div class="modal-header">
-        <img class="modal-doctor-avatar" src="" alt="">
-        <div class="modal-doctor-info">
-          <h3 class="modal-doctor-name">
-            <i class="fa-solid fa-user-doctor"></i>
-          </h3>
-          <p class="modal-doctor-specialty">
-            <i class="fa-solid fa-briefcase-medical"></i>
-          </p>
-          <p class="modal-doctor-city">
-            <i class="fa-solid fa-location-dot"></i>
-          </p>
-          <p class="modal-doctor-phone">
-            <i class="fa-solid fa-phone"></i>
-          </p>
-          <p class="modal-doctor-address">
-            <i class="fa-solid fa-house"></i>
-          </p>
-          <p class="modal-doctor-hours">
-            <i class="fa-solid fa-clock"></i>
-          </p>
-          <p class="modal-doctor-about">
-            <i class="fa-solid fa-circle-info"></i>
-          </p>
-          <div class="modal-doctor-page">
-            <i class="fa-brands fa-instagram"></i>
-          </div>
-        </div>
+    <div class="modal-card">
+      <!-- 🔹 هدر ثابت موبایل -->
+      <div class="modal-header-fixed">
+        <!-- دکمه بستن سمت چپ -->
+        <button class="modal-close" data-close="1" aria-label="بستن">×</button>
+        <h3>جزئیات پزشک</h3>
       </div>
 
-      <!-- ❌ بخش امتیاز حذف شد -->
+      <!-- اطلاعات پزشک -->
+      <div class="modal-header">
+        <img class="modal-doctor-avatar" src="" alt="تصویر پزشک">
+        <div class="modal-doctor-info">
+          <h3 class="modal-doctor-name"><i class="fa-solid fa-user-doctor"></i></h3>
+          <p class="modal-doctor-specialty"><i class="fa-solid fa-briefcase-medical"></i></p>
+          <p class="modal-doctor-city"><i class="fa-solid fa-location-dot"></i></p>
+          <p class="modal-doctor-phone"><i class="fa-solid fa-phone"></i></p>
+          <p class="modal-doctor-address"><i class="fa-solid fa-house"></i></p>
+          <p class="modal-doctor-hours"><i class="fa-solid fa-clock"></i></p>
+          <p class="modal-doctor-about"><i class="fa-solid fa-circle-info"></i></p>
+          <div class="modal-doctor-page"><i class="fa-brands fa-instagram"></i></div>
+        </div>
+      </div>
 
       <!-- دکمه نمایش فرم -->
       <button class="btn-show-form">➕ ثبت نظر</button>
@@ -96,8 +85,10 @@
       <form id="modal-comment-form" class="hidden">
         <input type="text" id="modal_user_name" placeholder="نام شما" required>
         <textarea id="modal_comment_text" placeholder="نظر شما..." required></textarea>
-        <button type="submit">ارسال نظر</button>
+        <button type="submit">ارسال نظر <i class="fa-solid fa-paper-plane"></i></button>
       </form>
+
+      <!-- ❌ پیام تأیید قدیمی حذف شد -->
 
       <!-- لیست نظرات -->
       <div class="modal-comments">
@@ -120,6 +111,9 @@
            alt="پشتیبانی واتساپ" width="60" height="60">
     </a>
   </div>
+
+  <!-- 🔹 Toast Notification (بیرون از مودال و بالاتر از همه) -->
+  <div id="toast" class="toast hidden"></div>
 
   <!-- 🔹 اسکریپت‌ها -->
   <script src="assets/js/script.js"></script>
