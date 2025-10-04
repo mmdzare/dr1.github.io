@@ -2,17 +2,25 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 
 export default async function handler(req, res) {
-  const code = req.query.code;
-  if (!code) {
-    return res.status(200).json({ error: "کد نظام پزشکی وارد نشده" });
-  }
-
   try {
-    // 📌 درخواست مستقیم به صفحه‌ی نتایج
-    const response = await axios.get(
-      `https://membersearch.irimc.org/searchresult?MedicalSystemNo=${code}`,
-      { headers: { "User-Agent": "Mozilla/5.0" } }
-    );
+    const code = req.query.code;
+    if (!code) {
+      console.error("❌ کدی ارسال نشده");
+      return res.status(400).json({ error: "کد نظام پزشکی وارد نشده" });
+    }
+
+    const url = `https://membersearch.irimc.org/searchresult?MedicalSystemNo=${code}`;
+    console.log("🔎 Fetching:", url);
+
+    const response = await axios.get(url, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      timeout: 15000,
+    });
+
+    if (!response.data) {
+      console.error("❌ پاسخ خالی از سرور");
+      return res.status(502).json({ error: "پاسخ خالی از سرور مقصد" });
+    }
 
     const $ = cheerio.load(response.data);
     const rows = $("table tbody tr");
@@ -35,12 +43,15 @@ export default async function handler(req, res) {
     });
 
     if (results.length === 0) {
-      return res.status(200).json({ error: "هیچ نتیجه‌ای پیدا نشد" });
+      console.warn("⚠️ هیچ نتیجه‌ای پیدا نشد برای کد:", code);
+      return res.status(404).json({ error: "هیچ نتیجه‌ای پیدا نشد" });
     }
 
+    console.log("✅ نتایج:", results.length, "رکورد");
     return res.status(200).json(results);
+
   } catch (err) {
-    console.error("❌ Scraping error:", err.message);
-    return res.status(200).json({ error: "خطا در اسکرپینگ: " + err.message });
+    console.error("❌ خطا در اسکرپینگ:", err.message);
+    return res.status(500).json({ error: "خطا در اسکرپینگ", details: err.message });
   }
 }
