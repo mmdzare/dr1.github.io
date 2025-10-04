@@ -12,12 +12,16 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // 📌 فقط اجازه‌ی GET بده
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "روش درخواست مجاز نیست" });
+  }
+
   try {
-    // 📌 گرفتن کد از query
+    // 📌 گرفتن کد از query و اعتبارسنجی
     const { code } = req.query;
-    if (!code || code === "null" || code === "undefined") {
-      console.error("❌ کدی ارسال نشده");
-      return res.status(400).json({ error: "کد نظام پزشکی وارد نشده" });
+    if (!code || !/^\d{4,8}$/.test(code)) {
+      return res.status(400).json({ error: "کد نظام پزشکی نامعتبر است" });
     }
 
     const url = `https://membersearch.irimc.org/searchresult?MedicalSystemNo=${encodeURIComponent(code)}`;
@@ -30,7 +34,6 @@ export default async function handler(req, res) {
     });
 
     if (!response.data) {
-      console.error("❌ پاسخ خالی از سرور");
       return res.status(502).json({ error: "پاسخ خالی از سرور مقصد" });
     }
 
@@ -60,13 +63,27 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: "هیچ نتیجه‌ای پیدا نشد" });
     }
 
-    console.log("✅ نتایج:", results.length, "رکورد");
+    // 📌 اگر فقط یک نتیجه بود، خروجی رو ساده‌تر بده
+    if (results.length === 1) {
+      return res.status(200).json(results[0]);
+    }
+
+    // 📌 اگر چند نتیجه بود، همه رو بده
     return res.status(200).json(results);
 
   } catch (err) {
+    // 📌 هندل کردن خطاهای axios
+    if (err.response) {
+      return res.status(err.response.status).json({
+        error: `خطا از سمت سایت مقصد (${err.response.status})`,
+        details: err.response.statusText,
+      });
+    }
+
+    // 📌 خطاهای دیگر (مثل timeout یا اتصال)
     console.error("❌ خطا در اسکرپینگ:", err.message);
     return res.status(500).json({
-      error: "خطا در اسکرپینگ",
+      error: "خطا در ارتباط با سایت نظام پزشکی",
       details: err.message,
     });
   }
