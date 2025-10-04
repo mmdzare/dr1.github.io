@@ -2,25 +2,25 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 
 export default async function handler(req, res) {
+  // 📌 فعال‌سازی CORS برای همه‌ی درخواست‌ها
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // 📌 هندل کردن preflight request (OPTIONS)
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   try {
-    // 📌 فعال‌سازی CORS برای درخواست‌ها از GitHub Pages
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-    // 📌 هندل کردن preflight request (OPTIONS)
-    if (req.method === "OPTIONS") {
-      return res.status(200).end();
-    }
-
     // 📌 گرفتن کد از query
-    const code = req.query.code;
-    if (!code) {
+    const { code } = req.query;
+    if (!code || code === "null" || code === "undefined") {
       console.error("❌ کدی ارسال نشده");
       return res.status(400).json({ error: "کد نظام پزشکی وارد نشده" });
     }
 
-    const url = `https://membersearch.irimc.org/searchresult?MedicalSystemNo=${code}`;
+    const url = `https://membersearch.irimc.org/searchresult?MedicalSystemNo=${encodeURIComponent(code)}`;
     console.log("🔎 Fetching:", url);
 
     // 📌 درخواست به سایت نظام پزشکی
