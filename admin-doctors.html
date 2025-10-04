@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>📋 مدیریت پزشکان</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS اختصاصی پنل پزشکان -->
+  <link rel="stylesheet" href="assets/css/admin-doctors.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>📋 مدیریت پزشکان</h1>
+
+  <table id="doctors-table">
+    <thead>
+      <tr>
+        <th>نام</th>
+        <th>کد نظام پزشکی</th>
+        <th>تخصص</th>
+        <th>استان</th>
+        <th>شهر</th>
+        <th>وضعیت</th>
+        <th>عملیات</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Modal برای نمایش اعتبارسنجی -->
+  <div id="verifyModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">✖</span>
+      <h3>🔍 نتیجه اعتبارسنجی</h3>
+      <div id="verifyResult"></div>
+      <div style="margin-top:15px; text-align:center;">
+        <button class="approve" onclick="finalDecision(true)">✅ تأیید</button>
+        <button class="reject" onclick="finalDecision(false)">❌ رد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS اختصاصی پنل پزشکان -->
+  <script src="assets/js/admin-doctors.js"></script>
+</body>
+</html>

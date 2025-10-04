@@ -8,7 +8,7 @@
   <!-- استایل اصلی سایت -->
   <link rel="stylesheet" href="assets/css/style.css">
   <!-- استایل اختصاصی فرم پزشک -->
-  <link rel="stylesheet" href="assets/css/create-doctor.css?v=2">
+  <link rel="stylesheet" href="assets/css/create-doctor.css?v=3">
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -49,7 +49,7 @@
 
       <div class="form-group">
         <label for="city">شهر:</label>
-        <select id="city" name="city" required>
+        <select id="city" name="city" required disabled>
           <option value="" disabled selected>ابتدا استان را انتخاب کنید</option>
         </select>
       </div>
@@ -91,7 +91,60 @@
   <!-- داده‌ها -->
   <script src="data/specialties.js"></script>
   <script src="data/iran-cities.js"></script>
-  <!-- منطق ثبت پزشک -->
-  <script src="assets/js/create-doctor.js"></script>
+
+  <!-- 📌 اسکریپت پر کردن کشویی‌ها -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // تخصص‌ها
+    const specialtySelect = document.getElementById("specialty");
+    if (specialtySelect) {
+      specialtySelect.innerHTML = `<option value="" disabled selected>انتخاب تخصص</option>`;
+      if (Array.isArray(window.specialties) && window.specialties.length > 0) {
+        window.specialties.forEach(s => {
+          if (s && typeof s === "string") {
+            specialtySelect.add(new Option(s, s));
+          }
+        });
+      } else {
+        specialtySelect.add(new Option("تخصصی موجود نیست", ""));
+        specialtySelect.disabled = true;
+        console.error("❌ specialties لود نشده یا خالی است");
+      }
+    }
+
+    // استان و شهر
+    const provinceSelect = document.getElementById("province");
+    const citySelect = document.getElementById("city");
+
+    if (provinceSelect && citySelect) {
+      provinceSelect.innerHTML = `<option value="" disabled selected>انتخاب استان</option>`;
+      if (window.cityMap && typeof window.cityMap === "object") {
+        Object.keys(window.cityMap).forEach(province => {
+          provinceSelect.add(new Option(province, province));
+        });
+
+        provinceSelect.addEventListener("change", () => {
+          const cities = window.cityMap[provinceSelect.value] || [];
+          citySelect.innerHTML = `<option value="" disabled selected>انتخاب شهر</option>`;
+
+          if (cities.length > 0) {
+            cities.forEach(city => citySelect.add(new Option(city, city)));
+            citySelect.disabled = false;
+          } else {
+            citySelect.add(new Option("شهری موجود نیست", ""));
+            citySelect.disabled = true;
+          }
+        });
+      } else {
+        provinceSelect.add(new Option("استانی موجود نیست", ""));
+        provinceSelect.disabled = true;
+        console.error("❌ cityMap لود نشده یا معتبر نیست");
+      }
+    }
+  });
+</script>
+
+<!-- منطق ثبت پزشک -->
+<script src="assets/js/create-doctor.js"></script>
 </body>
 </html>
