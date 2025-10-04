@@ -3,15 +3,20 @@ import * as cheerio from "cheerio";
 
 export default async function handler(req, res) {
   const code = req.query.code;
-  if (!code) return res.status(200).json({ error: "کد نظام پزشکی وارد نشده" });
+  if (!code) {
+    return res.status(200).json({ error: "کد نظام پزشکی وارد نشده" });
+  }
 
   try {
     // 📌 ارسال درخواست به سامانه
     const response = await axios.post(
       "https://membersearch.irimc.org/",
-      new URLSearchParams({ MedicalSystemCode: code }),
+      new URLSearchParams({ MedicalSystemNo: code }), // 👈 پارامتر درست
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
+
+    // 📌 لاگ گرفتن از خروجی خام برای بررسی در Vercel Logs
+    console.log("RAW HTML:", response.data.substring(0, 500));
 
     const $ = cheerio.load(response.data);
     const rows = $("table tbody tr");
@@ -36,9 +41,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ error: "هیچ نتیجه‌ای پیدا نشد" });
     }
 
-    res.status(200).json(results);
+    return res.status(200).json(results);
   } catch (err) {
     console.error("❌ Scraping error:", err.message);
-    res.status(200).json({ error: "خطا در اسکرپینگ: " + err.message });
+    return res.status(200).json({ error: "خطا در اسکرپینگ: " + err.message });
   }
 }
