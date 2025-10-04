@@ -66,15 +66,15 @@ document.addEventListener("click", function (e) {
     const doctorId = e.target.dataset.doctor;
     const value = parseInt(e.target.dataset.value, 10);
     if (doctorId && value) {
-      rateDoctor(doctorId, value);
+      rateDoctor(doctorId, value, e.target); // ستاره کلیک‌شده رو هم پاس می‌دیم
     }
   }
 });
 
 // ===============================
-// 📌 ثبت امتیاز پزشک (اصلاح‌شده)
+// 📌 ثبت امتیاز پزشک (اصلاح‌شده با Toast + Animation)
 // ===============================
-async function rateDoctor(doctorId, value) {
+async function rateDoctor(doctorId, value, clickedStar = null) {
   try {
     const clientId = getClientToken();
 
@@ -123,6 +123,15 @@ async function rateDoctor(doctorId, value) {
       .forEach(el => {
         el.innerHTML = renderStars(avg, true, doctorId);
       });
+
+    // ✨ انیمیشن روی ستاره انتخاب‌شده
+    if (clickedStar) {
+      clickedStar.classList.add("selected");
+      setTimeout(() => clickedStar.classList.remove("selected"), 600);
+    }
+
+    // ✨ Toast Notification
+    showToast(`⭐ امتیاز ${value} شما ثبت شد (میانگین جدید: ${avg})`);
 
     console.log(`✅ امتیاز ${value} برای پزشک ${doctorId} ثبت شد. میانگین جدید: ${avg}`);
 
@@ -311,7 +320,22 @@ async function initCommentsTicker(card, doctorName) {
   track._intervalId = setInterval(showNext, 5000);
 }
 // ===============================
-// 📌 باز کردن مودال و نمایش نظرات کامل (بدون ستاره‌ها)
+// 🔔 Toast Notification
+// ===============================
+function showToast(msg) {
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+
+  toast.textContent = msg;
+  toast.classList.add("show");
+
+  // بعد از 3 ثانیه مخفی بشه
+  setTimeout(() => {
+    toast.classList.remove("show");
+  }, 3000);
+}
+// ===============================
+// 📌 باز کردن مودال و نمایش نظرات کامل (با Toast و Highlight)
 // ===============================
 async function openCommentsModal(doctorName, doctorId) {
   const modal = document.getElementById("comments-modal");
@@ -319,7 +343,18 @@ async function openCommentsModal(doctorName, doctorId) {
     console.error("❌ مودال پیدا نشد!");
     return;
   }
+
+  // نمایش مودال + قفل کردن اسکرول بادی
   modal.classList.remove("hidden");
+  document.body.classList.add("body-lock");
+
+  // اجرای انیمیشن ورود
+  const card = modal.querySelector(".modal-card");
+  if (card) {
+    card.classList.remove("animate");
+    void card.offsetWidth; // ریست انیمیشن
+    card.classList.add("animate");
+  }
 
   try {
     // 📌 گرفتن اطلاعات کامل پزشک
@@ -331,6 +366,7 @@ async function openCommentsModal(doctorName, doctorId) {
 
     if (error) {
       console.error("❌ خطا در دریافت پزشک:", error.message);
+      return;
     }
     if (!doctor) {
       console.warn("⚠️ پزشک پیدا نشد.");
@@ -339,43 +375,26 @@ async function openCommentsModal(doctorName, doctorId) {
 
     // 📌 پر کردن اطلاعات پزشک در مودال
     const avatarEl = modal.querySelector(".modal-doctor-avatar");
-    const imgSrc =
-      doctor.image_url && doctor.image_url.trim() !== ""
-        ? doctor.image_url
-        : DEFAULT_AVATAR;
-
+    const imgSrc = doctor.image_url && doctor.image_url.trim() !== "" ? doctor.image_url : DEFAULT_AVATAR;
     avatarEl.src = imgSrc;
-    avatarEl.onerror = () => {
-      avatarEl.onerror = null;
-      avatarEl.src = DEFAULT_AVATAR;
-    };
+    avatarEl.onerror = () => { avatarEl.src = DEFAULT_AVATAR; };
 
-    // ✨ پر کردن فیلدها همراه با آیکون‌ها
     modal.querySelector(".modal-doctor-name").innerHTML =
       `<i class="fa-solid fa-user-doctor"></i> ${doctor.name || doctorName}`;
-
     modal.querySelector(".modal-doctor-specialty").innerHTML =
       doctor.specialty ? `<i class="fa-solid fa-briefcase-medical"></i> ${doctor.specialty}` : "";
-
     modal.querySelector(".modal-doctor-city").innerHTML =
       doctor.city ? `<i class="fa-solid fa-location-dot"></i> ${doctor.city}` : "";
-
     modal.querySelector(".modal-doctor-phone").innerHTML =
       doctor.phone ? `<i class="fa-solid fa-phone"></i> ${doctor.phone}` : "";
-
     modal.querySelector(".modal-doctor-address").innerHTML =
       doctor.address ? `<i class="fa-solid fa-house"></i> ${doctor.address}` : "";
-
     modal.querySelector(".modal-doctor-hours").innerHTML =
       doctor.work_hours ? `<i class="fa-solid fa-clock"></i> ${doctor.work_hours}` : "";
-
     modal.querySelector(".modal-doctor-about").innerHTML =
       doctor.extra_info ? `<i class="fa-solid fa-circle-info"></i> ${doctor.extra_info}` : "";
-
     modal.querySelector(".modal-doctor-page").innerHTML =
-      doctor.page_url
-        ? `<i class="fa-brands fa-instagram"></i> <a href="${doctor.page_url}" target="_blank" rel="noopener noreferrer">${doctor.page_url}</a>`
-        : "";
+      doctor.page_url ? `<i class="fa-brands fa-instagram"></i> <a href="${doctor.page_url}" target="_blank" rel="noopener noreferrer">${doctor.page_url}</a>` : "";
 
     // 📌 نمایش نظرات اولیه
     await renderFullComments(doctor.name, doctor.id);
@@ -393,19 +412,16 @@ async function openCommentsModal(doctorName, doctorId) {
         e.preventDefault();
         const user_name = document.getElementById("modal_user_name").value.trim();
         const comment_text = document.getElementById("modal_comment_text").value.trim();
-
         if (!user_name || !comment_text) return;
 
         try {
-          const { data, error: insertError } = await client.from("comments").insert([
-            {
-              doctor_name: doctor.name,
-              user_name,
-              comment: comment_text,
-              user_token: getClientToken(),
-              approved: null,
-            },
-          ]).select().single();
+          const { data, error: insertError } = await client.from("comments").insert([{
+            doctor_name: doctor.name,
+            user_name,
+            comment: comment_text,
+            user_token: getClientToken(),
+            approved: null,
+          }]).select().single();
 
           if (insertError) {
             console.error("❌ خطا در ثبت نظر:", insertError.message);
@@ -413,12 +429,11 @@ async function openCommentsModal(doctorName, doctorId) {
           }
 
           // 📌 اضافه کردن نظر جدید به DOM بدون رفرش کل لیست
-          const wrap = document.querySelector("#comments-modal .comments-list");
+          const wrap = modal.querySelector(".comments-list");
           if (wrap && data) {
             const item = document.createElement("div");
             item.className = "comment-item";
             item.setAttribute("data-id", data.id);
-
             item.innerHTML = `
               <div class="comment-meta">
                 ${data.user_name} • همین الان • ⏳ در انتظار بررسی
@@ -431,20 +446,20 @@ async function openCommentsModal(doctorName, doctorId) {
               </div>
               <div class="reply-list"></div>
             `;
-
             wrap.prepend(item);
+
+            // ✨ Highlight + Toast
+            item.classList.add("new");
+            showToast("✅ نظر شما ثبت شد و در انتظار تأیید است");
           }
 
           // پاک کردن فرم
           form.reset();
           form.classList.add("hidden");
 
-          // 📌 بروزرسانی تیکر (فقط همون بخش)
-          document
-            .querySelectorAll(`.comments-ticker[data-doctor-name="${doctor.name}"]`)
-            .forEach((t) =>
-              initCommentsTicker(t.closest(".doctor-card"), doctor.name)
-            );
+          // 📌 بروزرسانی تیکر
+          document.querySelectorAll(`.comments-ticker[data-doctor-name="${doctor.name}"]`)
+            .forEach((t) => initCommentsTicker(t.closest(".doctor-card"), doctor.name));
 
         } catch (err) {
           console.error("❌ خطای غیرمنتظره در ثبت نظر:", err);
@@ -454,7 +469,10 @@ async function openCommentsModal(doctorName, doctorId) {
 
     // 📌 بستن مودال (با data-close یا کلیک روی بک‌دراپ)
     modal.querySelectorAll("[data-close], .modal-backdrop").forEach(el => {
-      el.onclick = () => modal.classList.add("hidden");
+      el.onclick = () => {
+        modal.classList.add("hidden");
+        document.body.classList.remove("body-lock"); // آزاد کردن بادی
+      };
     });
 
   } catch (err) {
@@ -574,18 +592,23 @@ async function renderFullComments(doctorName, doctorId) {
 
         let form = item.querySelector(".reply-form");
         if (!form) {
-          form = document.createElement("div");
+          form = document.createElement("form");
+          form.id = `reply-form-${c.id}`;
           form.className = "reply-form";
           form.innerHTML = `
-            <input type="text" id="reply_name_${c.id}" placeholder="نام شما">
-            <textarea id="reply_text_${c.id}" placeholder="پاسخ شما"></textarea>
-            <button class="btn-send-reply">ارسال پاسخ</button>
+            <input type="text" id="reply_name_${c.id}" placeholder="نام شما" required>
+            <textarea id="reply_text_${c.id}" placeholder="پاسخ شما..." required></textarea>
+            <button type="submit" class="btn-send-reply">ارسال پاسخ</button>
           `;
-          item.appendChild(form);
 
-          form.querySelector(".btn-send-reply").addEventListener("click", () =>
-            sendReply(c.id, doctorName, doctorId)
-          );
+          // اتصال به تابع ارسال
+          form.onsubmit = (e) => {
+            e.preventDefault();
+            sendReply(c.id, doctorName, doctorId);
+          };
+
+          item.appendChild(form);
+          form.querySelector("input")?.focus();
         } else {
           form.remove(); // اگر وجود داشت → حذف کن
         }
@@ -644,25 +667,10 @@ async function voteComment(commentId, type, doctorName, doctorId) {
   }
 }
 
-// ===============================
-// 📌 نمایش/مخفی‌سازی فرم پاسخ
-// ===============================
-function toggleReplyForm(commentId) {
-  document.querySelectorAll(".reply-form").forEach(f => {
-    if (f.id !== `reply-form-${commentId}`) f.classList.add("hidden");
-  });
 
-  const form = document.getElementById(`reply-form-${commentId}`);
-  if (form) {
-    form.classList.toggle("hidden");
-    if (!form.classList.contains("hidden")) {
-      form.querySelector("input")?.focus();
-    }
-  }
-}
 
 // ===============================
-// 📌 ارسال پاسخ (بدون رفرش کل لیست)
+// 📌 ارسال پاسخ (با Highlight + Toast)
 // ===============================
 async function sendReply(commentId, doctorName, doctorId) {
   const form = document.getElementById(`reply-form-${commentId}`);
@@ -718,6 +726,10 @@ async function sendReply(commentId, doctorName, doctorId) {
         ri.style.opacity = "1";
         ri.style.transform = "translateY(0)";
       });
+
+      // ✨ Highlight + Toast
+      ri.classList.add("new");
+      showToast("✅ پاسخ شما ثبت شد");
     }
 
     // 📌 پاک کردن و بستن فرم
@@ -777,3 +789,4 @@ document.addEventListener("DOMContentLoaded", loadDoctors);
 function openCreateDoctor() {
   alert("اینجا می‌تونی فرم افزودن پزشک رو نمایش بدی.");
 }
+
