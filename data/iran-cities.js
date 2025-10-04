@@ -1,4 +1,4 @@
-const cityMap = {
+window.cityMap = {
   "کل کشور": ["ایران"],
 
   "آذربایجان شرقی": [
@@ -98,11 +98,19 @@ const cityMap = {
 document.addEventListener("DOMContentLoaded", () => {
   const provinceSelect = document.getElementById("province");
   const citySelect = document.getElementById("city");
-  if (!provinceSelect || !citySelect || !window.cityMap) return;
+
+  if (!provinceSelect || !citySelect) {
+    console.error("❌ province یا city select پیدا نشد");
+    return;
+  }
+  if (!window.cityMap || typeof window.cityMap !== "object") {
+    console.error("❌ cityMap تعریف نشده یا معتبر نیست");
+    return;
+  }
 
   // پر کردن استان‌ها
   provinceSelect.innerHTML = `<option value="" disabled selected>انتخاب استان</option>`;
-  Object.keys(cityMap).forEach(province => {
+  Object.keys(window.cityMap).forEach(province => {
     provinceSelect.add(new Option(province, province));
   });
 
@@ -111,15 +119,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // تغییر استان → پر کردن شهرها
   provinceSelect.addEventListener("change", () => {
-    const cities = cityMap[provinceSelect.value] || [];
+    const selectedProvince = provinceSelect.value;
+    const cities = window.cityMap[selectedProvince] || [];
+
     citySelect.innerHTML = `<option value="" disabled selected>انتخاب شهر</option>`;
 
     if (cities.length > 0) {
-      cities.forEach(city => {
-        citySelect.add(new Option(city, city));
-      });
+      cities.forEach(city => citySelect.add(new Option(city, city)));
       citySelect.disabled = false;
     } else {
+      citySelect.add(new Option("شهری موجود نیست", ""));
       citySelect.disabled = true;
     }
   });
