@@ -3,6 +3,16 @@ import * as cheerio from "cheerio";
 
 export default async function handler(req, res) {
   try {
+    // 📌 فعال‌سازی CORS
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    // 📌 هندل کردن preflight request (OPTIONS)
+    if (req.method === "OPTIONS") {
+      return res.status(200).end();
+    }
+
     const code = req.query.code;
     if (!code) {
       console.error("❌ کدی ارسال نشده");
