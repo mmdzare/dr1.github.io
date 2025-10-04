@@ -111,7 +111,7 @@ async function editDoctor(id, oldName) {
   }
 }
 
-// 📌  اعتبارسنجی
+// 📌 اعتبارسنجی با API روی Vercel
 async function verifyDoctor(id, name, code, specialty) {
   currentDoctorId = id;
 
@@ -123,26 +123,47 @@ async function verifyDoctor(id, name, code, specialty) {
   `;
 
   try {
-    // 📌 درخواست به API داخلی که اسکرپینگ انجام می‌دهد
-    const response = await fetch(`/api/verify-doctor?code=${code}`);
-    const official = await response.json();
+    const API_BASE = "https://dr1-github-io.vercel.app";
 
-    if (official.error) {
-      result += `<p>❌ ${official.error}</p>`;
+    // 📌 بررسی مقدار کد
+    if (!code || code === "null" || code === "undefined") {
+      result += `<p>❌ کد نظام پزشکی وارد نشده</p>`;
     } else {
-      result += `
-        <h4>اطلاعات رسمی از نظام پزشکی</h4>
-        <p>نام: ${official.name}<br>
-        کد: ${official.medicalCode}<br>
-        تخصص: ${official.specialty}<br>
-        استان: ${official.province}<br>
-        شهر: ${official.city}<br>
-        وضعیت: ${official.status}</p>
-      `;
+      const response = await fetch(
+        `${API_BASE}/api/verify-doctor?code=${encodeURIComponent(code)}`,
+        { headers: { "Accept": "application/json" } }
+      );
 
-      // 📌 بررسی مغایرت‌ها
-      if (name !== official.name) result += `<p class="diff">⚠️ نام متفاوت است</p>`;
-      if (specialty !== official.specialty) result += `<p class="diff">⚠️ تخصص متفاوت است</p>`;
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("❌ API error:", response.status, text);
+        result += `<p>❌ خطا از سمت سرور (${response.status})</p>`;
+      } else {
+        const official = await response.json();
+
+        if (official.error) {
+          result += `<p>❌ ${official.error}</p>`;
+        } else if (Array.isArray(official)) {
+          result += `<h4>اطلاعات رسمی از نظام پزشکی</h4>`;
+          official.forEach((doc, index) => {
+            result += `
+              <div class="official-result">
+                <h5>نتیجه ${index + 1}</h5>
+                <p>
+                  نام: ${doc.firstName} ${doc.lastName}<br>
+                  کد: ${doc.medicalCode}<br>
+                  رشته: ${doc.field}<br>
+                  نوع دوره: ${doc.courseType || "-"}<br>
+                  نمره: ${doc.grade || "-"}<br>
+                  <a href="${doc.profileUrl}" target="_blank">نمایش پروفایل</a>
+                </p>
+              </div>
+            `;
+          });
+        } else {
+          result += `<p>❌ ساختار داده نامعتبر است</p>`;
+        }
+      }
     }
   } catch (err) {
     result += `<p>❌ خطا در ارتباط با سرویس اعتبارسنجی</p>`;
@@ -159,7 +180,7 @@ function closeModal() {
   currentDoctorId = null;
 }
 
-// 📌 تصمیم نهایی در مودال
+// 📌 تصمیم نهایی
 async function finalDecision(approve) {
   if (!currentDoctorId) return;
   await updateDoctor(currentDoctorId, approve);
@@ -171,7 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadDoctors();
 });
 
-// 📌 دسترسی سراسری برای دکمه‌ها
+// 📌 دسترسی سراسری
 window.updateDoctor = updateDoctor;
 window.deleteDoctor = deleteDoctor;
 window.editDoctor = editDoctor;
