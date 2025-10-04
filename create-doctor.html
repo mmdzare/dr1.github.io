@@ -2,132 +2,96 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>افزودن پزشک جدید</title>
+  <title>➕ افزودن پزشک جدید</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- استایل اصلی سایت -->
   <link rel="stylesheet" href="assets/css/style.css">
+  <!-- استایل اختصاصی فرم پزشک -->
+  <link rel="stylesheet" href="assets/css/create-doctor.css?v=2">
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-    }
-    form label {
-      display: block;
-      margin-top: 12px;
-      font-weight: bold;
-    }
-    form input, form textarea {
-      width: 100%;
-      padding: 8px;
-      margin-top: 4px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-family: inherit;
-      font-size: 14px;
-    }
-    form textarea {
-      min-height: 80px;
-      resize: vertical;
-    }
-    #status {
-      margin-top: 16px;
-      font-size: 16px;
-    }
-    button {
-      margin-top: 16px;
-      background: #00bcd4;
-      color: #fff;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 15px;
-    }
-  </style>
 </head>
 <body>
-  <h1 style="text-align:center;">➕ افزودن پزشک جدید</h1>
+  <!-- هدر سایت -->
+  <header class="site-header">
+    <h1>➕ افزودن پزشک جدید</h1>
+  </header>
 
-  <form id="doctor-form" style="max-width:600px; margin:20px auto; padding:20px; background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.1);">
-    <label>نام پزشک:</label>
-    <input type="text" id="name" required>
+  <!-- محتوای اصلی -->
+  <main class="container">
+    <form id="doctor-form" class="doctor-form">
+      
+      <div class="form-group">
+        <label for="name">نام پزشک:</label>
+        <input type="text" id="name" name="name" required placeholder="نام و نام خانوادگی پزشک">
+      </div>
 
-    <label>تخصص:</label>
-    <input type="text" id="specialty" required>
+      <div class="form-group">
+        <label for="medical_code">کد نظام پزشکی:</label>
+        <input type="text" id="medical_code" name="medical_code" required placeholder="مثال: 123456">
+      </div>
 
-    <label>شهر:</label>
-    <input type="text" id="city" required>
+      <div class="form-group">
+        <label for="specialty">تخصص:</label>
+        <select id="specialty" name="specialty" required>
+          <option value="" disabled selected>انتخاب تخصص</option>
+        </select>
+      </div>
 
-    <label>لینک عکس (اختیاری):</label>
-    <input type="text" id="image_url" placeholder="اگر خالی بماند، آواتار پیش‌فرض ست می‌شود">
+      <div class="form-group">
+        <label for="province">استان:</label>
+        <select id="province" name="province" required>
+          <option value="" disabled selected>انتخاب استان</option>
+        </select>
+      </div>
 
-    <label>شماره تماس:</label>
-    <input type="text" id="phone">
+      <div class="form-group">
+        <label for="city">شهر:</label>
+        <select id="city" name="city" required>
+          <option value="" disabled selected>ابتدا استان را انتخاب کنید</option>
+        </select>
+      </div>
 
-    <label>آدرس صفحه (وب‌سایت/پروفایل):</label>
-    <input type="text" id="page_url">
+      <div class="form-group">
+        <label for="phone">شماره تماس:</label>
+        <input type="tel" id="phone" name="phone" pattern="[0-9]{11}" placeholder="مثال: 09123456789">
+      </div>
 
-    <label>آدرس مطب:</label>
-    <input type="text" id="address">
+      <div class="form-group">
+        <label for="address">آدرس مطب:</label>
+        <input type="text" id="address" name="address" placeholder="آدرس دقیق مطب">
+      </div>
 
-    <label>ساعات کاری:</label>
-    <input type="text" id="work_hours">
+      <div class="form-group">
+        <label for="work_hours">ساعات کاری:</label>
+        <input type="text" id="work_hours" name="work_hours" placeholder="مثال: 9 تا 17">
+      </div>
 
-    <label>امتیاز اولیه (۰ تا ۵):</label>
-    <input type="number" id="rating" min="0" max="5" step="0.1">
+      <div class="form-group">
+        <label for="rating">امتیاز اولیه (۰ تا ۵):</label>
+        <input type="number" id="rating" name="rating" min="0" max="5" step="0.1" placeholder="مثال: 4.5">
+      </div>
 
-    <label>اطلاعات اضافه:</label>
-    <textarea id="extra_info"></textarea>
+      <div class="form-group">
+        <label for="extra_info">اطلاعات اضافه:</label>
+        <textarea id="extra_info" name="extra_info" placeholder="توضیحات تکمیلی"></textarea>
+      </div>
 
-    <button type="submit">ثبت پزشک</button>
-  </form>
+      <div class="form-group">
+        <button type="submit">✅ ثبت پزشک</button>
+      </div>
+    </form>
 
-  <p id="status" style="text-align:center; font-weight:bold;"></p>
+    <!-- پیام وضعیت -->
+    <p id="status" class="status"></p>
+  </main>
 
-  <script>
-    // 📌 اتصال به Supabase
-    const client = supabase.createClient(
-      'https://lzfonyofgwfiwzsloqjp.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY'
-    );
-
-    // 📌 آواتار پیش‌فرض (فایل لوکال dr.png)
-    const DEFAULT_AVATAR = "assets/img/dr.png";
-
-    const form = document.getElementById('doctor-form');
-    const status = document.getElementById('status');
-
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-
-      const name = document.getElementById('name').value.trim();
-      const specialty = document.getElementById('specialty').value.trim();
-      const city = document.getElementById('city').value.trim();
-      const imageInput = document.getElementById('image_url').value.trim();
-      const phone = document.getElementById('phone').value.trim();
-      const page_url = document.getElementById('page_url').value.trim();
-      const address = document.getElementById('address').value.trim();
-      const work_hours = document.getElementById('work_hours').value.trim();
-      const rating = parseFloat(document.getElementById('rating').value) || null;
-      const extra_info = document.getElementById('extra_info').value.trim();
-
-      // 📌 اگر کاربر لینک عکس نداد، آواتار پیش‌فرض ست می‌شود
-      const image_url = imageInput !== "" ? imageInput : DEFAULT_AVATAR;
-
-      const { error } = await client.from('doctors').insert([
-        { name, specialty, city, image_url, phone, page_url, address, work_hours, rating, extra_info }
-      ]);
-
-      if (error) {
-        status.textContent = '❌ خطا در ثبت پزشک';
-        status.style.color = '#f44336';
-        console.error(error.message);
-      } else {
-        status.textContent = '✅ پزشک با موفقیت ثبت شد';
-        status.style.color = '#4caf50';
-        form.reset();
-      }
-    });
-  </script>
+  <!-- داده‌ها -->
+  <script src="data/specialties.js"></script>
+  <script src="data/iran-cities.js"></script>
+  <!-- منطق ثبت پزشک -->
+  <script src="assets/js/create-doctor.js"></script>
 </body>
 </html>
