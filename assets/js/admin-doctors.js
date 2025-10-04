@@ -1,6 +1,6 @@
-// 📌 اتصال به Supabase با اطلاعات پروژه‌ی واقعی
+// 📌 اتصال به Supabase
 const supabaseUrl = "https://lzfonyofgwfiwzsloqjp.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY"; // ⚠️ کلید اصلی رو اینجا نذار، از anon key استفاده کن
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const tableBody = document.querySelector("#doctors-table tbody");
@@ -13,7 +13,7 @@ function showLoading() {
   `;
 }
 
-// 📌 بارگذاری لیست پزشکان (بهینه‌شده)
+// 📌 بارگذاری لیست پزشکان
 async function loadDoctors(page = 0, limit = 20) {
   showLoading();
 
@@ -66,7 +66,7 @@ async function updateDoctor(id, approve) {
   const { error } = await supabase
     .from("doctors")
     .update({ approved: approve, status: approve ? "approved" : "rejected" })
-    .eq("id", id); // ⚠️ اگر کلید اصلی‌ات doctor_id یا uuid هست، اینجا تغییر بده
+    .eq("id", id);
 
   if (error) {
     alert("❌ خطا: " + error.message);
@@ -125,7 +125,6 @@ async function verifyDoctor(id, name, code, specialty) {
   try {
     const API_BASE = "https://dr1-github-io.vercel.app";
 
-    // 📌 بررسی مقدار کد
     if (!code || code === "null" || code === "undefined") {
       result += `<p>❌ کد نظام پزشکی وارد نشده</p>`;
     } else {
