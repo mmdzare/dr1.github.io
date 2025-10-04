@@ -277,11 +277,12 @@ async function initCommentsTicker(card, doctorName) {
   const track = card.querySelector(".ticker-track");
   if (!track) return;
 
-  // دریافت ۵ نظر آخر
+  // دریافت ۵ نظر آخر فقط از نظرات تأییدشده
   const { data: comments, error } = await client
     .from("comments")
     .select("user_name, comment")
     .eq("doctor_name", doctorName)
+    .eq("approved", true) // ✅ فقط نظرات تأییدشده
     .order("created_at", { ascending: false })
     .limit(5);
 
