@@ -6,6 +6,7 @@ export default async function handler(req, res) {
   if (!code) return res.status(200).json({ error: "کد نظام پزشکی وارد نشده" });
 
   try {
+    // 📌 ارسال درخواست به سامانه
     const response = await axios.post(
       "https://membersearch.irimc.org/",
       new URLSearchParams({ MedicalSystemCode: code }),
@@ -13,22 +14,31 @@ export default async function handler(req, res) {
     );
 
     const $ = cheerio.load(response.data);
-    const row = $("table tbody tr").first();
+    const rows = $("table tbody tr");
+    const results = [];
 
-    if (!row.length) return res.status(200).json({ error: "هیچ نتیجه‌ای پیدا نشد" });
+    rows.each((i, row) => {
+      const tds = $(row).find("td");
+      if (tds.length > 0) {
+        results.push({
+          firstName: tds.eq(0).text().trim(),
+          lastName: tds.eq(1).text().trim(),
+          medicalCode: tds.eq(2).text().trim(),
+          field: tds.eq(3).text().trim(),
+          courseType: tds.eq(4).text().trim(),
+          grade: tds.eq(5).text().trim(),
+          profileUrl: tds.eq(6).find("a").attr("href") || null,
+        });
+      }
+    });
 
-    const tds = row.find("td");
-    const payload = {
-      name: tds.eq(0).text().trim(),
-      medicalCode: tds.eq(1).text().trim(),
-      specialty: tds.eq(2).text().trim(),
-      province: tds.eq(3).text().trim(),
-      city: tds.eq(4).text().trim(),
-      status: tds.eq(5).text().trim(),
-    };
+    if (results.length === 0) {
+      return res.status(200).json({ error: "هیچ نتیجه‌ای پیدا نشد" });
+    }
 
-    res.status(200).json(payload);
+    res.status(200).json(results);
   } catch (err) {
+    console.error("❌ Scraping error:", err.message);
     res.status(200).json({ error: "خطا در اسکرپینگ: " + err.message });
   }
 }
