@@ -72,16 +72,16 @@ document.addEventListener("click", function (e) {
 });
 
 // ===============================
-// 📌 ثبت امتیاز پزشک (اصلاح‌شده با Toast + Animation)
+// 📌 ثبت امتیاز پزشک (با تشخیص رأی تکراری + Toast + Animation)
 // ===============================
 async function rateDoctor(doctorId, value, clickedStar = null) {
   try {
     const clientId = getClientToken();
 
-    // بررسی وجود امتیاز قبلی
+    // بررسی وجود امتیاز قبلی + گرفتن مقدار قبلی
     const { data: existing, error: selectError } = await client
       .from("ratings")
-      .select("id")
+      .select("id, value")
       .eq("doctor_id", doctorId)
       .eq("client_id", clientId)
       .maybeSingle();
@@ -91,7 +91,13 @@ async function rateDoctor(doctorId, value, clickedStar = null) {
       return;
     }
 
-    // اگر قبلاً امتیاز داده بود → آپدیت
+    // 📌 اگر رأی قبلی وجود دارد و مقدارش با رأی جدید یکی است → پیام و توقف
+    if (existing && existing.value === value) {
+      showToast("⭐ امتیاز شما قبلاً ثبت شده بود");
+      return;
+    }
+
+    // 📌 اگر رأی قبلی وجود دارد → بروزرسانی
     if (existing) {
       const { error: updateError } = await client
         .from("ratings")
@@ -103,7 +109,7 @@ async function rateDoctor(doctorId, value, clickedStar = null) {
         return;
       }
     } 
-    // اگر اولین بار امتیاز می‌ده → درج
+    // 📌 اگر اولین بار رأی می‌دهد → درج جدید
     else {
       const { error: insertError } = await client
         .from("ratings")
@@ -115,11 +121,11 @@ async function rateDoctor(doctorId, value, clickedStar = null) {
       }
     }
 
-    // محاسبه میانگین جدید
+    // 📌 محاسبه میانگین جدید
     const avg = await getDoctorRating(doctorId);
 
-    // بروزرسانی همه‌ی بخش‌های نمایش امتیاز
-    document.querySelectorAll(`[data-doctor-id="${doctorId}"] .doctor-rating`)
+    // 📌 بروزرسانی ستاره‌ها در کارت پزشک
+    document.querySelectorAll(`.doctor-rating[data-doctor-id="${doctorId}"]`)
       .forEach(el => {
         el.innerHTML = renderStars(avg, true, doctorId);
       });
@@ -130,9 +136,8 @@ async function rateDoctor(doctorId, value, clickedStar = null) {
       setTimeout(() => clickedStar.classList.remove("selected"), 600);
     }
 
-    // ✨ Toast Notification
+    // ✨ Toast تأیید رأی
     showToast(`⭐ امتیاز ${value} شما ثبت شد (میانگین جدید: ${avg})`);
-
     console.log(`✅ امتیاز ${value} برای پزشک ${doctorId} ثبت شد. میانگین جدید: ${avg}`);
 
   } catch (err) {
@@ -332,7 +337,7 @@ function showToast(msg) {
   // بعد از 3 ثانیه مخفی بشه
   setTimeout(() => {
     toast.classList.remove("show");
-  }, 3000);
+  }, 5000);
 }
 // ===============================
 // 📌 باز کردن مودال و نمایش نظرات کامل (با Toast و Highlight)
@@ -480,7 +485,7 @@ async function openCommentsModal(doctorName, doctorId) {
   }
 }
 // ===============================
-// 📌 نمایش کامل نظرات + پاسخ‌ها + لایک/دیس‌لایک
+// 📌 نمایش کامل نظرات + پاسخ‌ها + لایک/دیس‌لایک (فقط تأییدشده‌ها)
 // ===============================
 async function renderFullComments(doctorName, doctorId) {
   const wrap = document.querySelector("#comments-modal .comments-list");
@@ -491,11 +496,12 @@ async function renderFullComments(doctorName, doctorId) {
     txt ? txt.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
 
   try {
-    // 📌 گرفتن نظرات
+    // 📌 گرفتن فقط نظرات تأییدشده
     const { data: comments, error } = await client
       .from("comments")
       .select("id, user_name, comment, created_at, approved")
       .eq("doctor_name", doctorName)
+      .eq("approved", true)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -505,15 +511,15 @@ async function renderFullComments(doctorName, doctorId) {
     }
 
     if (!comments || comments.length === 0) {
-      wrap.innerHTML = "<p>هنوز نظری ثبت نشده است.</p>";
+      wrap.innerHTML = "<p>هنوز نظری تأییدشده‌ای ثبت نشده است.</p>";
       return;
     }
 
-    // 📌 گرفتن پاسخ‌ها و رأی‌ها
+    // 📌 گرفتن فقط پاسخ‌های تأییدشده
     const ids = comments.map((c) => c.id);
     const { data: replies } = ids.length
       ? await client.from("replies")
-          .select("id, name, text, comment_id, ts")
+          .select("id, name, text, comment_id, ts, approved")
           .in("comment_id", ids)
       : { data: [] };
 
@@ -531,7 +537,7 @@ async function renderFullComments(doctorName, doctorId) {
     ratingBox.innerHTML = renderStars(await getDoctorRating(doctorId), true, doctorId);
     wrap.appendChild(ratingBox);
 
-    // 📌 نمایش هر نظر
+    // 📌 نمایش هر نظر تأییدشده
     comments.forEach((c) => {
       const likeCount = votes.filter((v) => v.comment_id === c.id && v.type === "like").length;
       const dislikeCount = votes.filter((v) => v.comment_id === c.id && v.type === "dislike").length;
@@ -540,14 +546,9 @@ async function renderFullComments(doctorName, doctorId) {
       item.className = "comment-item";
       item.setAttribute("data-id", c.id);
 
-      // وضعیت تأیید
-      let status = "⏳ در انتظار بررسی";
-      if (c.approved === true) status = "✅ تأیید شده";
-      if (c.approved === false) status = "❌ رد شده";
-
       item.innerHTML = `
         <div class="comment-meta">
-          ${safeText(c.user_name)} • ${new Date(c.created_at).toLocaleDateString("fa-IR")} • ${status}
+          ${safeText(c.user_name)} • ${new Date(c.created_at).toLocaleDateString("fa-IR")} • ✅ تأیید شده
         </div>
         <div class="comment-text">${safeText(c.comment)}</div>
         <div class="comment-actions">
@@ -558,9 +559,9 @@ async function renderFullComments(doctorName, doctorId) {
         <div class="reply-list"></div>
       `;
 
-      // 📌 نمایش پاسخ‌ها
+      // 📌 نمایش فقط پاسخ‌های تأییدشده
       const rlist = item.querySelector(".reply-list");
-      const relatedReplies = (replies || []).filter((r) => r.comment_id === c.id);
+      const relatedReplies = (replies || []).filter((r) => r.comment_id === c.id && r.approved === true);
 
       relatedReplies.forEach((r) => {
         const ri = document.createElement("div");
@@ -585,9 +586,7 @@ async function renderFullComments(doctorName, doctorId) {
         voteComment(c.id, "dislike", doctorName, doctorId)
       );
 
-      // 📌 فقط وقتی روی «پاسخ» کلیک شد، فرم ساخته می‌شود
       replyBtn.addEventListener("click", () => {
-        // بستن همه‌ی فرم‌های دیگر
         document.querySelectorAll(".reply-form").forEach(f => f.remove());
 
         let form = item.querySelector(".reply-form");
@@ -600,17 +599,14 @@ async function renderFullComments(doctorName, doctorId) {
             <textarea id="reply_text_${c.id}" placeholder="پاسخ شما..." required></textarea>
             <button type="submit" class="btn-send-reply">ارسال پاسخ</button>
           `;
-
-          // اتصال به تابع ارسال
           form.onsubmit = (e) => {
             e.preventDefault();
             sendReply(c.id, doctorName, doctorId);
           };
-
           item.appendChild(form);
           form.querySelector("input")?.focus();
         } else {
-          form.remove(); // اگر وجود داشت → حذف کن
+          form.remove();
         }
       });
 
@@ -670,7 +666,7 @@ async function voteComment(commentId, type, doctorName, doctorId) {
 
 
 // ===============================
-// 📌 ارسال پاسخ (با Highlight + Toast)
+// 📌 ارسال پاسخ (با Highlight + Toast + تأیید دستی)
 // ===============================
 async function sendReply(commentId, doctorName, doctorId) {
   const form = document.getElementById(`reply-form-${commentId}`);
@@ -694,7 +690,9 @@ async function sendReply(commentId, doctorName, doctorId) {
           comment_id: commentId,
           name,
           text,
+          doctor_name: doctorName,
           ts: new Date().toISOString(),
+          approved: null
         },
       ])
       .select()
@@ -702,43 +700,20 @@ async function sendReply(commentId, doctorName, doctorId) {
 
     if (error) {
       console.error("❌ خطا در ثبت پاسخ:", error.message);
+      showToast("❌ خطا در ثبت پاسخ");
       return;
     }
 
-    // 📌 اضافه کردن پاسخ جدید به DOM بدون رفرش کل لیست
-    const rlist = document.querySelector(
-      `.comment-item[data-id="${commentId}"] .reply-list`
-    );
-    if (rlist && data) {
-      const ri = document.createElement("div");
-      ri.className = "reply-item";
-      ri.innerHTML = `
-        <div class="reply-content">${data.text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
-        <div class="reply-meta">${data.name} • ${new Date(data.ts).toLocaleDateString("fa-IR")}</div>
-      `;
-      rlist.appendChild(ri);
+    showToast("✅ پاسخ شما ثبت شد و پس از تأیید نمایش داده خواهد شد");
 
-      // 📌 انیمیشن نرم برای اضافه شدن پاسخ
-      ri.style.opacity = "0";
-      ri.style.transform = "translateY(8px)";
-      requestAnimationFrame(() => {
-        ri.style.transition = "all 0.3s ease";
-        ri.style.opacity = "1";
-        ri.style.transform = "translateY(0)";
-      });
-
-      // ✨ Highlight + Toast
-      ri.classList.add("new");
-      showToast("✅ پاسخ شما ثبت شد");
-    }
-
-    // 📌 پاک کردن و بستن فرم
+    // 📌 پاک کردن و حذف کامل فرم
     nameEl.value = "";
     textEl.value = "";
-    form.classList.add("hidden");
+    form.remove();
 
   } catch (err) {
     console.error("❌ خطای غیرمنتظره در ثبت پاسخ:", err);
+    showToast("❌ خطای غیرمنتظره در ثبت پاسخ");
   } finally {
     btn.disabled = false;
   }
