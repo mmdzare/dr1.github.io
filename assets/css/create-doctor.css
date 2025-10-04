@@ -3,17 +3,31 @@ body {
   background: linear-gradient(135deg, #e0f7fa, #ffffff);
   min-height: 100vh;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   font-family: "IRANSans", "Tahoma", sans-serif;
   line-height: 1.6;
+  font-size: 15px;
+  display: flex;
+  flex-direction: column; /* هدر بالا، فرم پایین */
+}
+
+/* 🏷️ هدر سایت */
+.site-header {
+  width: 100%;
+  background: #00bcd4;
+  color: #fff;
+  padding: 15px 20px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0,0,0,.1);
 }
 
 /* 📦 کانتینر فرم */
 .container {
-  width: 100%;
-  max-width: 600px;
+  flex: 1; /* پر کردن فضای باقی‌مانده */
+  display: flex;
+  justify-content: center;
+  align-items: center;
   padding: 20px;
 }
 
@@ -27,13 +41,12 @@ body {
   flex-direction: column;
   gap: 16px;
   animation: fadeIn 0.6s ease;
+  width: 100%;
+  max-width: 600px;
 }
 
 /* 📌 گروه هر فیلد */
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
+.form-group { display: flex; flex-direction: column; }
 
 /* 🏷️ لیبل‌ها */
 .doctor-form label {
@@ -53,23 +66,20 @@ body {
   font-size: 14px;
   background: #fafafa;
   transition: all 0.25s ease;
+  direction: rtl;
+  text-align: right;
 }
 
-/* ✨ placeholder مدرن */
-::placeholder {
-  color: #aaa;
-  font-size: 13px;
-}
+::placeholder { color: #aaa; font-size: 13px; text-align: right; }
 
-/* 🖱️ افکت hover روی فیلدها */
+input[type="number"],
+input[type="tel"] { direction: ltr; text-align: left; }
+
+/* 🔎 فوکوس و hover */
 .doctor-form input:hover,
 .doctor-form textarea:hover,
-.doctor-form select:hover {
-  border-color: #bbb;
-  background: #fdfdfd;
-}
+.doctor-form select:hover { border-color: #bbb; background: #fdfdfd; }
 
-/* 🔎 فوکوس روی فیلد */
 .doctor-form input:focus,
 .doctor-form textarea:focus,
 .doctor-form select:focus {
@@ -80,10 +90,7 @@ body {
 }
 
 /* 📄 تکست‌اریا */
-.doctor-form textarea {
-  min-height: 100px;
-  resize: vertical;
-}
+.doctor-form textarea { min-height: 100px; resize: vertical; }
 
 /* 🎯 دکمه ثبت */
 .doctor-form button {
@@ -95,20 +102,24 @@ body {
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
   box-shadow: 0 4px 12px rgba(0,188,212,0.3);
 }
 
-/* 🖱️ افکت hover روی دکمه */
 .doctor-form button:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0,188,212,0.4);
 }
 
-/* 👆 افکت active روی دکمه */
 .doctor-form button:active {
   transform: translateY(0);
   box-shadow: 0 4px 12px rgba(0,188,212,0.3);
+}
+
+.doctor-form button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* 📌 پیام وضعیت */
@@ -128,17 +139,10 @@ body {
 
 /* 📱 ریسپانسیو موبایل */
 @media (max-width: 600px) {
-  .doctor-form {
-    padding: 20px;
-    border-radius: 12px;
-    gap: 20px;
-  }
+  .doctor-form { padding: 20px; border-radius: 12px; gap: 20px; }
   .doctor-form input,
   .doctor-form select,
-  .doctor-form textarea {
-    font-size: 15px;
-  }
-  .doctor-form button {
-    width: 100%;
-  }
+  .doctor-form textarea { font-size: 15px; }
+  .doctor-form button { width: 100%; }
+  .container { padding: 10px; }
 }
