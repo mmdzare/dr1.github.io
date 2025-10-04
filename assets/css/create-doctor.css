@@ -1,0 +1,144 @@
+/* 🌄 بک‌گراند کلی صفحه */
+body {
+  background: linear-gradient(135deg, #e0f7fa, #ffffff);
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: "IRANSans", "Tahoma", sans-serif;
+  line-height: 1.6;
+}
+
+/* 📦 کانتینر فرم */
+.container {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+}
+
+/* 🎨 فرم پزشک */
+.doctor-form {
+  background: #fff;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeIn 0.6s ease;
+}
+
+/* 📌 گروه هر فیلد */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 🏷️ لیبل‌ها */
+.doctor-form label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+  font-size: 14px;
+}
+
+/* 📝 فیلدهای ورودی */
+.doctor-form input,
+.doctor-form textarea,
+.doctor-form select {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fafafa;
+  transition: all 0.25s ease;
+}
+
+/* ✨ placeholder مدرن */
+::placeholder {
+  color: #aaa;
+  font-size: 13px;
+}
+
+/* 🖱️ افکت hover روی فیلدها */
+.doctor-form input:hover,
+.doctor-form textarea:hover,
+.doctor-form select:hover {
+  border-color: #bbb;
+  background: #fdfdfd;
+}
+
+/* 🔎 فوکوس روی فیلد */
+.doctor-form input:focus,
+.doctor-form textarea:focus,
+.doctor-form select:focus {
+  border-color: #00bcd4;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(0,188,212,0.25);
+  outline: none;
+}
+
+/* 📄 تکست‌اریا */
+.doctor-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* 🎯 دکمه ثبت */
+.doctor-form button {
+  background: linear-gradient(135deg, #00bcd4, #0097a7);
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,188,212,0.3);
+}
+
+/* 🖱️ افکت hover روی دکمه */
+.doctor-form button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,188,212,0.4);
+}
+
+/* 👆 افکت active روی دکمه */
+.doctor-form button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(0,188,212,0.3);
+}
+
+/* 📌 پیام وضعیت */
+.status {
+  text-align: center;
+  margin-top: 15px;
+  font-weight: bold;
+  font-size: 15px;
+  color: #555;
+}
+
+/* ✨ انیمیشن ورود فرم */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 📱 ریسپانسیو موبایل */
+@media (max-width: 600px) {
+  .doctor-form {
+    padding: 20px;
+    border-radius: 12px;
+    gap: 20px;
+  }
+  .doctor-form input,
+  .doctor-form select,
+  .doctor-form textarea {
+    font-size: 15px;
+  }
+  .doctor-form button {
+    width: 100%;
+  }
+}
