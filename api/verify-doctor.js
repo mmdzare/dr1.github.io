@@ -8,69 +8,47 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1) GET اولیه برای گرفتن کوکی و ViewState (اگر نیاز باشد)
+    // 1) GET اولیه برای گرفتن کوکی و hidden fieldها
     const getResp = await axios.get("https://membersearch.irimc.org/", {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
           "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
       },
-      // برای دریافت کوکی‌ها
-      maxRedirects: 5,
-      validateStatus: () => true,
     });
 
-    const setCookie = getResp.headers["set-cookie"] || [];
-    const cookieHeader = setCookie.join("; ");
+    const $ = cheerio.load(getResp.data);
+    const viewState = $("input[name='__VIEWSTATE']").val();
+    const eventValidation = $("input[name='__EVENTVALIDATION']").val();
 
-    // 2) POST به صفحه‌ی searchresult با همان کوکی و هدرهای واقعی
-    const postHeaders = {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "fa-IR,fa;q=0.9,en-US;q=0.8,en;q=0.7",
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Origin": "https://membersearch.irimc.org",
-      "Referer": "https://membersearch.irimc.org/",
-      ...(cookieHeader ? { "Cookie": cookieHeader } : {}),
-    };
+    const cookieHeader = (getResp.headers["set-cookie"] || []).join("; ");
 
-    const response = await axios.post(
+    // 2) POST به searchresult با hidden fieldها + MedicalSystemNo
+    const postResp = await axios.post(
       "https://membersearch.irimc.org/searchresult",
-      new URLSearchParams({ MedicalSystemNo: code }),
+      new URLSearchParams({
+        MedicalSystemNo: code,
+        __VIEWSTATE: viewState,
+        __EVENTVALIDATION: eventValidation,
+      }),
       {
-        headers: postHeaders,
-        maxRedirects: 5,
-        validateStatus: () => true,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          Cookie: cookieHeader,
+          Referer: "https://membersearch.irimc.org/",
+        },
       }
     );
 
-    console.log("STATUS:", response.status);
-    console.log("HEADERS:", JSON.stringify(response.headers, null, 2));
-    console.log("RAW HTML:", String(response.data).substring(0, 500));
-
-    // اگر باز هم 500 بود، پیام واضح بده
-    if (response.status >= 500) {
-      return res.status(200).json({ error: "سرور مقصد خطای 500 داد. دوباره تلاش کنید." });
-    }
-
-    const $ = cheerio.load(response.data);
-
-    // سلکتور دقیق‌تر برای جدول نتایج (اگر کلاس‌ها وجود داشته باشند)
-    // ابتدا هر جدول را بررسی می‌کنیم
-    let rows = $("table tbody tr");
-    if (rows.length === 0) {
-      // تلاش دوم: جدول‌های با کلاس Bootstrap یا Grid
-      rows = $(".table tbody tr, .grid tbody tr, tbody tr");
-    }
-
+    const $$ = cheerio.load(postResp.data);
+    const rows = $$("table tbody tr");
     const results = [];
+
     rows.each((i, row) => {
-      const tds = $(row).find("td");
-      // حداقل 8 ستون انتظار داریم
+      const tds = $$(row).find("td");
       if (tds.length >= 8) {
         results.push({
           row: tds.eq(0).text().trim(),
