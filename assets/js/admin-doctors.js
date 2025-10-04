@@ -152,8 +152,8 @@ async function verifyDoctor(id, name, code, specialty) {
                   نام: ${doc.firstName} ${doc.lastName}<br>
                   کد: ${doc.medicalCode}<br>
                   رشته: ${doc.field}<br>
-                  نوع دوره: ${doc.courseType || "-"}<br>
-                  نمره: ${doc.grade || "-"}<br>
+                  شهر: ${doc.city}<br>
+                  نوع عضویت: ${doc.membershipType}<br>
                   <a href="${doc.profileUrl}" target="_blank">نمایش پروفایل</a>
                 </p>
               </div>
