@@ -52,6 +52,9 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error("❌ خطا در اسکرپینگ:", err.message);
-    return res.status(500).json({ error: "خطا در اسکرپینگ", details: err.message });
+    return res.status(500).json({
+      error: "خطا در اسکرپینگ",
+      details: err.message,
+    });
   }
 }
