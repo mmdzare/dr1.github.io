@@ -10,6 +10,9 @@
   "scripts": {
     "dev": "vercel dev",
     "start": "node api/verify-doctor.js",
-    "build": "echo 'No build step required'"
+    "build": "echo \"No build step required\""
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }
