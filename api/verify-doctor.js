@@ -8,9 +8,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 📌 درخواست مستقیم با GET
+    // 📌 درخواست مستقیم به صفحه‌ی نتایج
     const response = await axios.get(
-      "https://membersearch.irimc.org/searchresult?MedicalSystemNo=" + code,
+      `https://membersearch.irimc.org/searchresult?MedicalSystemNo=${code}`,
       { headers: { "User-Agent": "Mozilla/5.0" } }
     );
 
