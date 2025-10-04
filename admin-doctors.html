@@ -8,8 +8,44 @@
   <!-- CSS اختصاصی پنل پزشکان -->
   <link rel="stylesheet" href="assets/css/admin-doctors.css">
 
-  <!-- Supabase -->
+  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- اضافه کردن style برای modal در صورت نبود فایل CSS -->
+  <style>
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; right: 0; bottom: 0; left: 0;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    .close {
+      float: left;
+      cursor: pointer;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .diff {
+      color: red;
+      font-weight: bold;
+    }
+    .official-result {
+      border-top: 1px solid #ccc;
+      margin-top: 10px;
+      padding-top: 10px;
+    }
+  </style>
 </head>
 <body>
   <h1>📋 مدیریت پزشکان</h1>
