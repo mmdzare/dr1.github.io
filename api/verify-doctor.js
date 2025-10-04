@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 
 export default async function handler(req, res) {
   try {
-    // 📌 فعال‌سازی CORS
+    // 📌 فعال‌سازی CORS برای درخواست‌ها از GitHub Pages
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -13,6 +13,7 @@ export default async function handler(req, res) {
       return res.status(200).end();
     }
 
+    // 📌 گرفتن کد از query
     const code = req.query.code;
     if (!code) {
       console.error("❌ کدی ارسال نشده");
@@ -22,6 +23,7 @@ export default async function handler(req, res) {
     const url = `https://membersearch.irimc.org/searchresult?MedicalSystemNo=${code}`;
     console.log("🔎 Fetching:", url);
 
+    // 📌 درخواست به سایت نظام پزشکی
     const response = await axios.get(url, {
       headers: { "User-Agent": "Mozilla/5.0" },
       timeout: 15000,
@@ -32,6 +34,7 @@ export default async function handler(req, res) {
       return res.status(502).json({ error: "پاسخ خالی از سرور مقصد" });
     }
 
+    // 📌 پردازش HTML با cheerio
     const $ = cheerio.load(response.data);
     const rows = $("table tbody tr");
     const results = [];
@@ -52,6 +55,7 @@ export default async function handler(req, res) {
       }
     });
 
+    // 📌 اگر نتیجه‌ای پیدا نشد
     if (results.length === 0) {
       console.warn("⚠️ هیچ نتیجه‌ای پیدا نشد برای کد:", code);
       return res.status(404).json({ error: "هیچ نتیجه‌ای پیدا نشد" });
