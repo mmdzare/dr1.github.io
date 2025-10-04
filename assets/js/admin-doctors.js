@@ -1,6 +1,6 @@
-// 📌 اتصال به Supabase
+// 📌 اتصال به Supabase (فقط برای کلید anon استفاده کن، نه service_role!)
 const supabaseUrl = "https://lzfonyofgwfiwzsloqjp.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY"; // ⚠️ کلید اصلی رو اینجا نذار، از anon key استفاده کن
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY"; // ⚠️ اینو از داشبورد Supabase بگیر
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const tableBody = document.querySelector("#doctors-table tbody");
@@ -123,45 +123,70 @@ async function verifyDoctor(id, name, code, specialty) {
   `;
 
   try {
-    const API_BASE = "https://dr1-github-io.vercel.app";
+    // ✅ تغییر 1: استفاده از دامنه‌ی جدید بک‌اند جداگانه
+    const API_BASE = "https://dr1-api.vercel.app"; // ← دامنه‌ی درست بک‌اند
 
-    if (!code || code === "null" || code === "undefined") {
-      result += `<p>❌ کد نظام پزشکی وارد نشده</p>`;
+    // ✅ تغییر 2: اضافه کردن timeout دستی برای جلوگیری از چرخش بی‌پایان
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10 ثانیه
+
+    const response = await fetch(
+      `${API_BASE}/api/verify-doctor?code=${encodeURIComponent(code)}`,
+      {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        },
+        signal: controller.signal
+      }
+    );
+    clearTimeout(timeout);
+
+    // ✅ تغییر 3: هندل کردن پاسخ‌های غیر JSON یا خالی
+    const contentType = response.headers.get("content-type");
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("❌ API error:", response.status, text);
+      result += `<p>❌ خطا از سمت سرور (${response.status})</p>`;
+    } else if (!contentType || !contentType.includes("application/json")) {
+      const raw = await response.text();
+      console.warn("⚠️ پاسخ غیر JSON:", raw);
+      result += `<p>❌ پاسخ نامعتبر از سرور</p>`;
     } else {
-      const response = await fetch(
-        `${API_BASE}/api/verify-doctor?code=${encodeURIComponent(code)}`,
-        { headers: { "Accept": "application/json" } }
-      );
+      const official = await response.json();
 
-      if (!response.ok) {
-        const text = await response.text();
-        console.error("❌ API error:", response.status, text);
-        result += `<p>❌ خطا از سمت سرور (${response.status})</p>`;
+      if (official.error) {
+        result += `<p>❌ ${official.error}</p>`;
+      } else if (Array.isArray(official)) {
+        result += `<h4>اطلاعات رسمی از نظام پزشکی</h4>`;
+        official.forEach((doc, index) => {
+          result += `
+            <div class="official-result">
+              <h5>نتیجه ${index + 1}</h5>
+              <p>
+                نام: ${doc.firstName} ${doc.lastName}<br>
+                کد: ${doc.medicalCode}<br>
+                رشته: ${doc.field}<br>
+                نوع دوره: ${doc.courseType || "-"}<br>
+                نمره: ${doc.grade || "-"}<br>
+                <a href="${doc.profileUrl}" target="_blank">نمایش پروفایل</a>
+              </p>
+            </div>
+          `;
+
+          // ✅ تغییر 4: بررسی دقیق‌تر مغایرت‌ها
+          if (index === 0) {
+            const fullName = `${doc.firstName} ${doc.lastName}`.trim();
+            if (name && name.trim() !== fullName) {
+              result += `<p class="diff">⚠️ نام متفاوت است (انتظار: ${fullName})</p>`;
+            }
+            if (specialty && specialty.trim() !== doc.field.trim()) {
+              result += `<p class="diff">⚠️ تخصص متفاوت است (انتظار: ${doc.field})</p>`;
+            }
+          }
+        });
       } else {
-        const official = await response.json();
-
-        if (official.error) {
-          result += `<p>❌ ${official.error}</p>`;
-        } else if (Array.isArray(official)) {
-          result += `<h4>اطلاعات رسمی از نظام پزشکی</h4>`;
-          official.forEach((doc, index) => {
-            result += `
-              <div class="official-result">
-                <h5>نتیجه ${index + 1}</h5>
-                <p>
-                  نام: ${doc.firstName} ${doc.lastName}<br>
-                  کد: ${doc.medicalCode}<br>
-                  رشته: ${doc.field}<br>
-                  شهر: ${doc.city}<br>
-                  نوع عضویت: ${doc.membershipType}<br>
-                  <a href="${doc.profileUrl}" target="_blank">نمایش پروفایل</a>
-                </p>
-              </div>
-            `;
-          });
-        } else {
-          result += `<p>❌ ساختار داده نامعتبر است</p>`;
-        }
+        result += `<p>❌ ساختار داده نامعتبر است</p>`;
       }
     }
   } catch (err) {
@@ -172,29 +197,3 @@ async function verifyDoctor(id, name, code, specialty) {
   document.getElementById("verifyResult").innerHTML = result;
   document.getElementById("verifyModal").style.display = "flex";
 }
-
-// 📌 بستن مودال
-function closeModal() {
-  document.getElementById("verifyModal").style.display = "none";
-  currentDoctorId = null;
-}
-
-// 📌 تصمیم نهایی
-async function finalDecision(approve) {
-  if (!currentDoctorId) return;
-  await updateDoctor(currentDoctorId, approve);
-  closeModal();
-}
-
-// 📌 بارگذاری اولیه
-document.addEventListener("DOMContentLoaded", () => {
-  loadDoctors();
-});
-
-// 📌 دسترسی سراسری
-window.updateDoctor = updateDoctor;
-window.deleteDoctor = deleteDoctor;
-window.editDoctor = editDoctor;
-window.verifyDoctor = verifyDoctor;
-window.finalDecision = finalDecision;
-window.closeModal = closeModal;
