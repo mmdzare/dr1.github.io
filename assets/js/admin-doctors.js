@@ -1,19 +1,17 @@
-// 📌 اتصال به Supabase (فقط برای کلید anon استفاده کن، نه service_role!)
+// اتصال به Supabase
 const supabaseUrl = "https://lzfonyofgwfiwzsloqjp.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY"; // ⚠️ اینو از داشبورد Supabase بگیر
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY";
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 const tableBody = document.querySelector("#doctors-table tbody");
 let currentDoctorId = null;
 
-// 📌 نمایش لودینگ
+// نمایش لودینگ
 function showLoading() {
-  tableBody.innerHTML = `
-    <tr><td colspan="7">⏳ در حال بارگذاری...</td></tr>
-  `;
+  tableBody.innerHTML = `<tr><td colspan="7">⏳ در حال بارگذاری...</td></tr>`;
 }
 
-// 📌 بارگذاری لیست پزشکان
+// بارگذاری لیست پزشکان
 async function loadDoctors(page = 0, limit = 20) {
   showLoading();
 
@@ -23,8 +21,7 @@ async function loadDoctors(page = 0, limit = 20) {
   const { data, error } = await supabase
     .from("doctors")
     .select("id, name, medical_code, specialty, province, city, status")
-    .order("created_at", { ascending: false })
-    .range(from, to);
+    .range(from, to); // حذف .order چون ممکنه ستون وجود نداشته باشه
 
   if (error) {
     console.error("❌ خطا در دریافت داده‌ها:", error.message);
@@ -51,9 +48,9 @@ async function loadDoctors(page = 0, limit = 20) {
         ${doc.status === "pending" ? `
           <button class="approve" onclick="updateDoctor('${doc.id}', true)">✅</button>
           <button class="reject" onclick="updateDoctor('${doc.id}', false)">❌</button>
-          <button class="verify" onclick="verifyDoctor('${doc.id}', '${doc.name}', '${doc.medical_code}', '${doc.specialty}')">🔍</button>
+          <button class="verify" onclick='verifyDoctor(${JSON.stringify(doc.id)}, ${JSON.stringify(doc.name)}, ${JSON.stringify(doc.medical_code)}, ${JSON.stringify(doc.specialty)})'>🔍</button>
         ` : ""}
-        <button class="edit" onclick="editDoctor('${doc.id}', '${doc.name}')">✏️</button>
+        <button class="edit" onclick='editDoctor(${JSON.stringify(doc.id)}, ${JSON.stringify(doc.name)})'>✏️</button>
         <button class="delete" onclick="deleteDoctor('${doc.id}')">🗑️</button>
       </td>
     `;
@@ -61,7 +58,7 @@ async function loadDoctors(page = 0, limit = 20) {
   });
 }
 
-// 📌 تأیید یا رد پزشک
+// تأیید یا رد پزشک
 async function updateDoctor(id, approve) {
   const { error } = await supabase
     .from("doctors")
@@ -75,7 +72,7 @@ async function updateDoctor(id, approve) {
   }
 }
 
-// 📌 حذف پزشک
+// حذف پزشک
 async function deleteDoctor(id) {
   if (!confirm("آیا مطمئن هستید؟")) return;
   const { error } = await supabase.from("doctors").delete().eq("id", id);
@@ -86,7 +83,7 @@ async function deleteDoctor(id) {
   }
 }
 
-// 📌 ویرایش اطلاعات پزشک
+// ویرایش اطلاعات پزشک
 async function editDoctor(id, oldName) {
   const newName = prompt("نام جدید:", oldName);
   const newCode = prompt("کد نظام پزشکی جدید:");
@@ -111,7 +108,7 @@ async function editDoctor(id, oldName) {
   }
 }
 
-// 📌 اعتبارسنجی با API روی Vercel
+// اعتبارسنجی با API روی Vercel
 async function verifyDoctor(id, name, code, specialty) {
   currentDoctorId = id;
 
@@ -123,26 +120,20 @@ async function verifyDoctor(id, name, code, specialty) {
   `;
 
   try {
-    // ✅ تغییر 1: استفاده از دامنه‌ی جدید بک‌اند جداگانه
-    const API_BASE = "https://dr1-api.vercel.app"; // ← دامنه‌ی درست بک‌اند
-
-    // ✅ تغییر 2: اضافه کردن timeout دستی برای جلوگیری از چرخش بی‌پایان
+    const API_BASE = "https://dr1-api.vercel.app";
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10 ثانیه
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
     const response = await fetch(
       `${API_BASE}/api/verify-doctor?code=${encodeURIComponent(code)}`,
       {
         method: "GET",
-        headers: {
-          "Accept": "application/json"
-        },
+        headers: { "Accept": "application/json" },
         signal: controller.signal
       }
     );
     clearTimeout(timeout);
 
-    // ✅ تغییر 3: هندل کردن پاسخ‌های غیر JSON یا خالی
     const contentType = response.headers.get("content-type");
     if (!response.ok) {
       const text = await response.text();
@@ -174,7 +165,6 @@ async function verifyDoctor(id, name, code, specialty) {
             </div>
           `;
 
-          // ✅ تغییر 4: بررسی دقیق‌تر مغایرت‌ها
           if (index === 0) {
             const fullName = `${doc.firstName} ${doc.lastName}`.trim();
             if (name && name.trim() !== fullName) {
@@ -197,3 +187,29 @@ async function verifyDoctor(id, name, code, specialty) {
   document.getElementById("verifyResult").innerHTML = result;
   document.getElementById("verifyModal").style.display = "flex";
 }
+
+// بستن مودال
+function closeModal() {
+  document.getElementById("verifyModal").style.display = "none";
+  currentDoctorId = null;
+}
+
+// تصمیم نهایی
+async function finalDecision(approve) {
+  if (!currentDoctorId) return;
+  await updateDoctor(currentDoctorId, approve);
+  closeModal();
+}
+
+// بارگذاری اولیه پس از لود شدن صفحه
+document.addEventListener("DOMContentLoaded", () => {
+  loadDoctors();
+});
+
+// دسترسی سراسری به توابع
+window.updateDoctor = updateDoctor;
+window.deleteDoctor = deleteDoctor;
+window.editDoctor = editDoctor;
+window.verifyDoctor = verifyDoctor;
+window.finalDecision = finalDecision;
+window.closeModal = closeModal;
