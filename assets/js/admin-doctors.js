@@ -1,27 +1,26 @@
-// اتصال به Supabase
-const supabaseUrl = "https://lzfonyofgwfiwzsloqjp.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY";
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+// 📌 اتصال به Supabase
+const supabase = window.supabase.createClient(
+  "https://lzfonyofgwfiwzsloqjp.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6Zm9ueW9mZ3dmaXd6c2xvcWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxODkyODYsImV4cCI6MjA3NDc2NTI4Nn0.DFnvcx5VuhQOSgb4Lab4LB-U-opdiCwBa3_kKD9dPiY"
+);
 
 const tableBody = document.querySelector("#doctors-table tbody");
+const verifyModal = document.getElementById("verifyModal");
+const verifyResult = document.getElementById("verifyResult");
 let currentDoctorId = null;
 
-// نمایش لودینگ
+// 📌 نمایش پیام بارگذاری
 function showLoading() {
   tableBody.innerHTML = `<tr><td colspan="7">⏳ در حال بارگذاری...</td></tr>`;
 }
 
-// بارگذاری لیست پزشکان
+// 📌 دریافت لیست پزشکان
 async function loadDoctors(page = 0, limit = 20) {
   showLoading();
-
-  const from = page * limit;
-  const to = from + limit - 1;
-
   const { data, error } = await supabase
     .from("doctors")
     .select("id, name, medical_code, specialty, province, city, status")
-    .range(from, to); // حذف .order چون ممکنه ستون وجود نداشته باشه
+    .range(page * limit, page * limit + limit - 1);
 
   if (error) {
     console.error("❌ خطا در دریافت داده‌ها:", error.message);
@@ -29,10 +28,14 @@ async function loadDoctors(page = 0, limit = 20) {
     return;
   }
 
-  if (!data || data.length === 0) {
+  if (!data?.length) {
     tableBody.innerHTML = `<tr><td colspan="7">هیچ رکوردی یافت نشد</td></tr>`;
     return;
   }
+
+  // 📌 مرتب‌سازی بر اساس وضعیت
+  const order = { pending: 1, approved: 2, rejected: 3 };
+  data.sort((a, b) => (order[a.status] || 99) - (order[b.status] || 99));
 
   tableBody.innerHTML = "";
   data.forEach(doc => {
@@ -58,7 +61,7 @@ async function loadDoctors(page = 0, limit = 20) {
   });
 }
 
-// تأیید یا رد پزشک
+// 📌 تأیید یا رد پزشک
 async function updateDoctor(id, approve) {
   const { error } = await supabase
     .from("doctors")
@@ -67,23 +70,25 @@ async function updateDoctor(id, approve) {
 
   if (error) {
     alert("❌ خطا: " + error.message);
+    console.error(error);
   } else {
     loadDoctors();
   }
 }
 
-// حذف پزشک
+// 📌 حذف پزشک
 async function deleteDoctor(id) {
   if (!confirm("آیا مطمئن هستید؟")) return;
   const { error } = await supabase.from("doctors").delete().eq("id", id);
   if (error) {
     alert("❌ خطا: " + error.message);
+    console.error(error);
   } else {
     loadDoctors();
   }
 }
 
-// ویرایش اطلاعات پزشک
+// 📌 ویرایش پزشک
 async function editDoctor(id, oldName) {
   const newName = prompt("نام جدید:", oldName);
   const newCode = prompt("کد نظام پزشکی جدید:");
@@ -91,122 +96,137 @@ async function editDoctor(id, oldName) {
   const newProvince = prompt("استان جدید:");
   const newCity = prompt("شهر جدید:");
 
-  if (!newName && !newCode && !newSpecialty && !newProvince && !newCity) return;
+  if (![newName, newCode, newSpecialty, newProvince, newCity].some(Boolean)) return;
 
-  const { error } = await supabase.from("doctors").update({
-    ...(newName && { name: newName }),
-    ...(newCode && { medical_code: newCode }),
-    ...(newSpecialty && { specialty: newSpecialty }),
-    ...(newProvince && { province: newProvince }),
-    ...(newCity && { city: newCity })
-  }).eq("id", id);
+  const updates = {};
+  if (newName) updates.name = newName;
+  if (newCode) updates.medical_code = newCode;
+  if (newSpecialty) updates.specialty = newSpecialty;
+  if (newProvince) updates.province = newProvince;
+  if (newCity) updates.city = newCity;
 
+  const { error } = await supabase.from("doctors").update(updates).eq("id", id);
   if (error) {
     alert("❌ خطا: " + error.message);
+    console.error(error);
   } else {
     loadDoctors();
   }
 }
 
-// اعتبارسنجی با API روی Vercel
+// 📌 بررسی اعتبار پزشک از API (Render)
 async function verifyDoctor(id, name, code, specialty) {
   currentDoctorId = id;
 
+  // ✅ اگر کد نظام پزشکی وارد نشده بود
+  if (!code || code.trim() === "") {
+    verifyResult.innerHTML = `
+      <h4>اطلاعات واردشده توسط پزشک</h4>
+      <p>نام: ${name || "-"}<br>کد: -<br>تخصص: ${specialty || "-"}</p>
+      <p style="color:#dc2626; font-weight:bold;">❌ پزشک/فرد کد نظام پزشکی وارد نکرده است</p>
+    `;
+    verifyModal.style.display = "flex";
+    return;
+  }
+
   let result = `
     <h4>اطلاعات واردشده توسط پزشک</h4>
-    <p>نام: ${name}<br>
-    کد: ${code}<br>
-    تخصص: ${specialty}</p>
+    <p>نام: ${name || "-"}<br>کد: ${code || "-"}<br>تخصص: ${specialty || "-"}</p>
   `;
 
   try {
-    const API_BASE = "https://dr1-api.vercel.app";
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
+    const API_BASE = "https://dr1-api.onrender.com";
+    const response = await fetch(`${API_BASE}/api/verify-doctor`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code })
+    });
 
-    const response = await fetch(
-      `${API_BASE}/api/verify-doctor?code=${encodeURIComponent(code)}`,
-      {
-        method: "GET",
-        headers: { "Accept": "application/json" },
-        signal: controller.signal
-      }
-    );
-    clearTimeout(timeout);
+    const official = await response.json();
 
-    const contentType = response.headers.get("content-type");
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("❌ API error:", response.status, text);
-      result += `<p>❌ خطا از سمت سرور (${response.status})</p>`;
-    } else if (!contentType || !contentType.includes("application/json")) {
-      const raw = await response.text();
-      console.warn("⚠️ پاسخ غیر JSON:", raw);
-      result += `<p>❌ پاسخ نامعتبر از سرور</p>`;
-    } else {
-      const official = await response.json();
+    if (official.error || official.message) {
+      result += `<p>❌ ${official.error || official.message}</p>`;
+    } else if (official.rows && official.rows.length > 0) {
+      // ✅ جدول نتایج رسمی
+      result += `
+        <h4>اطلاعات رسمی از نظام پزشکی</h4>
+        <table class="verify-table">
+          <thead>
+            <tr>
+              <th>نام</th>
+              <th>کد نظام</th>
+              <th>رشته</th>
+              <th>شهر</th>
+              <th>نوع عضویت</th>
+              <th>پروفایل</th>
+              <th>مغایرت</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
 
-      if (official.error) {
-        result += `<p>❌ ${official.error}</p>`;
-      } else if (Array.isArray(official)) {
-        result += `<h4>اطلاعات رسمی از نظام پزشکی</h4>`;
-        official.forEach((doc, index) => {
-          result += `
-            <div class="official-result">
-              <h5>نتیجه ${index + 1}</h5>
-              <p>
-                نام: ${doc.firstName} ${doc.lastName}<br>
-                کد: ${doc.medicalCode}<br>
-                رشته: ${doc.field}<br>
-                نوع دوره: ${doc.courseType || "-"}<br>
-                نمره: ${doc.grade || "-"}<br>
-                <a href="${doc.profileUrl}" target="_blank">نمایش پروفایل</a>
-              </p>
-            </div>
-          `;
+      official.rows.forEach((row) => {
+        const mapped = {
+          name: `${row["نام"] || ""} ${row["نام خانوادگی"] || ""}`.trim(),
+          medical_code: row["شماره نظام پزشکی"] || code,
+          specialty: row["رشته تحصیلی"] || "-",
+          city: row["شهر"] || "-",
+          membership: row["نوع عضویت"] || row["نوع پروانه"] || "-",
+          profile: row["پروفایل"] || null
+        };
 
-          if (index === 0) {
-            const fullName = `${doc.firstName} ${doc.lastName}`.trim();
-            if (name && name.trim() !== fullName) {
-              result += `<p class="diff">⚠️ نام متفاوت است (انتظار: ${fullName})</p>`;
-            }
-            if (specialty && specialty.trim() !== doc.field.trim()) {
-              result += `<p class="diff">⚠️ تخصص متفاوت است (انتظار: ${doc.field})</p>`;
-            }
-          }
-        });
-      } else {
-        result += `<p>❌ ساختار داده نامعتبر است</p>`;
-      }
+        // بررسی مغایرت‌ها
+        let diffs = "";
+        if (name && mapped.name && name.trim() !== mapped.name.trim()) {
+          diffs += `⚠️ نام متفاوت (انتظار: ${mapped.name})<br>`;
+        }
+        if (specialty && mapped.specialty && specialty.trim() !== mapped.specialty.trim()) {
+          diffs += `⚠️ تخصص متفاوت (انتظار: ${mapped.specialty})`;
+        }
+
+        result += `
+          <tr>
+            <td>${mapped.name}</td>
+            <td>${mapped.medical_code}</td>
+            <td>${mapped.specialty}</td>
+            <td>${mapped.city}</td>
+            <td>${mapped.membership}</td>
+            <td>${mapped.profile ? `<a href="${mapped.profile}" target="_blank">👁</a>` : "-"}</td>
+            <td class="diff-cell">${diffs || "-"}</td>
+          </tr>
+        `;
+      });
+
+      result += `</tbody></table>`;
     }
   } catch (err) {
     result += `<p>❌ خطا در ارتباط با سرویس اعتبارسنجی</p>`;
-    console.error("❌ verifyDoctor error:", err);
+    console.error("verifyDoctor error:", err);
   }
 
-  document.getElementById("verifyResult").innerHTML = result;
-  document.getElementById("verifyModal").style.display = "flex";
+  verifyResult.innerHTML = result;
+  verifyModal.style.display = "flex";
 }
 
-// بستن مودال
+// 📌 بستن modal
 function closeModal() {
-  document.getElementById("verifyModal").style.display = "none";
+  verifyModal.style.display = "none";
   currentDoctorId = null;
 }
 
-// تصمیم نهایی
+// 📌 تصمیم نهایی تأیید یا رد
 async function finalDecision(approve) {
   if (!currentDoctorId) return;
   await updateDoctor(currentDoctorId, approve);
   closeModal();
 }
 
-// بارگذاری اولیه پس از لود شدن صفحه
+// 📌 بارگذاری اولیه
 document.addEventListener("DOMContentLoaded", () => {
   loadDoctors();
 });
 
-// دسترسی سراسری به توابع
+// 📌 اتصال توابع به window
 window.updateDoctor = updateDoctor;
 window.deleteDoctor = deleteDoctor;
 window.editDoctor = editDoctor;

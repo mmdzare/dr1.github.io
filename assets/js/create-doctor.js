@@ -15,45 +15,78 @@ if (form) {
   form.addEventListener("submit", async e => {
     e.preventDefault();
 
-    // گرفتن داده‌ها
-    const name = document.getElementById("name").value.trim();
-    const medical_code = document.getElementById("medical_code").value.trim();
-    const specialty = document.getElementById("specialty").value;
+    // گرفتن داده‌ها از فرم
+    const nameInput = document.getElementById("name").value.trim();
+    const medical_code = document.getElementById("medicalcode").value.trim();
+    const specialtyInput = document.getElementById("specialty").value;
     const province = document.getElementById("province").value;
     const city = document.getElementById("city").value;
     const phone = document.getElementById("phone").value.trim();
     const address = document.getElementById("address").value.trim();
-    const work_hours = document.getElementById("work_hours").value.trim();
+    const work_hours = document.getElementById("workhours").value.trim();
     const rating = parseFloat(document.getElementById("rating").value) || null;
-    const extra_info = document.getElementById("extra_info").value.trim();
+    const extra_info = document.getElementById("extrainfo").value.trim();
     const image_url = DEFAULT_AVATAR;
 
-    // 📌 اعتبارسنجی ساده
-    if (!name || !medical_code || !specialty || !province || !city) {
+    // 📌 اعتبارسنجی اولیه
+    if (!nameInput || !medical_code || !specialtyInput || !province || !city) {
       status.textContent = "⚠️ لطفاً همه فیلدهای ضروری را پر کنید";
       status.style.color = "#ff9800";
       return;
     }
 
-    // 📌 اعتبارسنجی کد نظام پزشکی
     if (!/^\d+$/.test(medical_code)) {
       status.textContent = "⚠️ کد نظام پزشکی باید فقط عدد باشد";
       status.style.color = "#ff9800";
       return;
     }
 
-    // 📌 اعتبارسنجی شماره تماس
     if (phone && !/^\d{11}$/.test(phone)) {
       status.textContent = "⚠️ شماره تماس باید دقیقاً ۱۱ رقم باشد";
       status.style.color = "#ff9800";
       return;
     }
 
-    // 📌 نمایش وضعیت در حال ثبت
-    status.textContent = "⏳ در حال ثبت پزشک...";
+    // 📌 بررسی اعتبار کد نظام پزشکی
+    status.textContent = "⏳ در حال بررسی کد نظام پزشکی...";
     status.style.color = "#2196f3";
 
-    // دکمه غیرفعال شود تا دوبار کلیک نشود
+    let mappedDoctor = null;
+
+    try {
+      const verifyRes = await fetch("https://dr1-api.onrender.com/api/verify-doctor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: medical_code })
+      });
+      const verifyData = await verifyRes.json();
+
+      if (!verifyData.rows || verifyData.rows.length === 0) {
+        status.textContent = "❌ کد نظام پزشکی معتبر نیست";
+        status.style.color = "#f44336";
+        return;
+      }
+
+      // 📌 مپ کردن داده‌های رسمی
+      const official = verifyData.rows[0];
+      mappedDoctor = {
+        name: `${official["نام"] || ""} ${official["نام خانوادگی"] || ""}`.trim() || nameInput,
+        specialty: official["رشته"] || official["رشته تحصیلی"] || specialtyInput,
+        membership: official["نوع عضویت"] || "",
+        profile: official["پروفایل"] || null
+      };
+
+      status.innerHTML = `✅ کد تأیید شد (${mappedDoctor.name} - ${mappedDoctor.specialty})<br>در حال ثبت پزشک...`;
+      status.style.color = "#4caf50";
+
+    } catch (err) {
+      console.error("API Error:", err);
+      status.textContent = "❌ خطا در ارتباط با سرور تأیید";
+      status.style.color = "#f44336";
+      return;
+    }
+
+    // 📌 نمایش وضعیت در حال ثبت
     const submitBtn = form.querySelector("button[type=submit]");
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -61,11 +94,10 @@ if (form) {
     }
 
     try {
-      // 📌 ذخیره در جدول doctors
       const { data, error } = await client.from("doctors").insert([{
-        name,
+        name: mappedDoctor?.name || nameInput,
         medical_code,
-        specialty,
+        specialty: mappedDoctor?.specialty || specialtyInput,
         province,
         city,
         phone,
@@ -79,7 +111,6 @@ if (form) {
         submitted_by: "doctor"
       }]).select();
 
-      // 📌 نمایش نتیجه
       if (error) {
         console.error("Supabase Error:", error);
         status.textContent = "❌ خطا در ثبت پزشک: " + (error.message || "لطفاً دوباره تلاش کنید.");
