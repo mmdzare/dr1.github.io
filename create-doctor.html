@@ -4,33 +4,25 @@
   <meta charset="UTF-8">
   <title>➕ افزودن پزشک جدید</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- استایل اصلی سایت -->
   <link rel="stylesheet" href="assets/css/style.css">
-  <!-- استایل اختصاصی فرم پزشک -->
   <link rel="stylesheet" href="assets/css/create-doctor.css?v=3">
-
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <!-- هدر سایت -->
   <header class="site-header">
     <h1>➕ افزودن پزشک جدید</h1>
   </header>
 
-  <!-- محتوای اصلی -->
   <main class="container">
     <form id="doctor-form" class="doctor-form">
-      
       <div class="form-group">
         <label for="name">نام پزشک:</label>
         <input type="text" id="name" name="name" required placeholder="نام و نام خانوادگی پزشک">
       </div>
 
       <div class="form-group">
-        <label for="medical_code">کد نظام پزشکی:</label>
-        <input type="text" id="medical_code" name="medical_code" required placeholder="مثال: 123456">
+        <label for="medicalcode">کد نظام پزشکی:</label>
+        <input type="text" id="medicalcode" name="medicalcode" required placeholder="مثال: 123456">
       </div>
 
       <div class="form-group">
@@ -65,8 +57,8 @@
       </div>
 
       <div class="form-group">
-        <label for="work_hours">ساعات کاری:</label>
-        <input type="text" id="work_hours" name="work_hours" placeholder="مثال: 9 تا 17">
+        <label for="workhours">ساعات کاری:</label>
+        <input type="text" id="workhours" name="workhours" placeholder="مثال: 9 تا 17">
       </div>
 
       <div class="form-group">
@@ -75,8 +67,8 @@
       </div>
 
       <div class="form-group">
-        <label for="extra_info">اطلاعات اضافه:</label>
-        <textarea id="extra_info" name="extra_info" placeholder="توضیحات تکمیلی"></textarea>
+        <label for="extrainfo">اطلاعات اضافه:</label>
+        <textarea id="extrainfo" name="extrainfo" placeholder="توضیحات تکمیلی"></textarea>
       </div>
 
       <div class="form-group">
@@ -84,67 +76,71 @@
       </div>
     </form>
 
-    <!-- پیام وضعیت -->
     <p id="status" class="status"></p>
   </main>
 
-  <!-- داده‌ها -->
   <script src="data/specialties.js"></script>
   <script src="data/iran-cities.js"></script>
 
-  <!-- 📌 اسکریپت پر کردن کشویی‌ها -->
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    // تخصص‌ها
-    const specialtySelect = document.getElementById("specialty");
-    if (specialtySelect) {
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const specialtySelect = document.getElementById("specialty");
       specialtySelect.innerHTML = `<option value="" disabled selected>انتخاب تخصص</option>`;
-      if (Array.isArray(window.specialties) && window.specialties.length > 0) {
-        window.specialties.forEach(s => {
-          if (s && typeof s === "string") {
-            specialtySelect.add(new Option(s, s));
-          }
-        });
-      } else {
-        specialtySelect.add(new Option("تخصصی موجود نیست", ""));
-        specialtySelect.disabled = true;
-        console.error("❌ specialties لود نشده یا خالی است");
+      if (Array.isArray(window.specialties)) {
+        window.specialties.forEach(s => specialtySelect.add(new Option(s, s)));
       }
-    }
 
-    // استان و شهر
-    const provinceSelect = document.getElementById("province");
-    const citySelect = document.getElementById("city");
-
-    if (provinceSelect && citySelect) {
+      const provinceSelect = document.getElementById("province");
+      const citySelect = document.getElementById("city");
       provinceSelect.innerHTML = `<option value="" disabled selected>انتخاب استان</option>`;
-      if (window.cityMap && typeof window.cityMap === "object") {
-        Object.keys(window.cityMap).forEach(province => {
-          provinceSelect.add(new Option(province, province));
-        });
-
+      if (window.cityMap) {
+        Object.keys(window.cityMap).forEach(province => provinceSelect.add(new Option(province, province)));
         provinceSelect.addEventListener("change", () => {
           const cities = window.cityMap[provinceSelect.value] || [];
           citySelect.innerHTML = `<option value="" disabled selected>انتخاب شهر</option>`;
-
-          if (cities.length > 0) {
-            cities.forEach(city => citySelect.add(new Option(city, city)));
-            citySelect.disabled = false;
-          } else {
-            citySelect.add(new Option("شهری موجود نیست", ""));
-            citySelect.disabled = true;
-          }
+          cities.forEach(city => citySelect.add(new Option(city, city)));
+          citySelect.disabled = cities.length === 0;
         });
-      } else {
-        provinceSelect.add(new Option("استانی موجود نیست", ""));
-        provinceSelect.disabled = true;
-        console.error("❌ cityMap لود نشده یا معتبر نیست");
       }
-    }
-  });
-</script>
 
-<!-- منطق ثبت پزشک -->
-<script src="assets/js/create-doctor.js"></script>
+      const form = document.getElementById("doctor-form");
+      const status = document.getElementById("status");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        status.textContent = "⏳ در حال بررسی کد نظام پزشکی...";
+        status.style.color = "#333";
+
+        const medicalCode = document.getElementById("medicalcode").value.trim();
+        try {
+          // 📌 درخواست POST به Render
+          const res = await fetch("https://dr1-api.onrender.com/api/verify-doctor", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code: medicalCode })
+          });
+          const data = await res.json();
+
+          if (!data.rows || data.rows.length === 0) {
+            status.textContent = "❌ کد نظام پزشکی معتبر نیست";
+            status.style.color = "#f44336";
+            return;
+          }
+
+          status.textContent = "✅ کد تأیید شد، در حال ثبت پزشک...";
+          status.style.color = "#4caf50";
+
+          // 📌 اینجا می‌تونی اطلاعات فرم رو جمع‌آوری و در Supabase ذخیره کنی
+          // const { error } = await supabase.from("doctors").insert([...])
+          // اگر error بود => نمایش پیام خطا
+
+        } catch (err) {
+          status.textContent = "❌ خطا در ارتباط با سرور تأیید";
+          status.style.color = "#f44336";
+          console.error(err);
+        }
+      });
+    });
+  </script>
 </body>
 </html>
