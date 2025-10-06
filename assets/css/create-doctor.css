@@ -7,7 +7,7 @@ body {
   line-height: 1.6;
   font-size: 15px;
   display: flex;
-  flex-direction: column; /* هدر بالا، فرم پایین */
+  flex-direction: column;
 }
 
 /* 🏷️ هدر سایت */
@@ -24,7 +24,7 @@ body {
 
 /* 📦 کانتینر فرم */
 .container {
-  flex: 1; /* پر کردن فضای باقی‌مانده */
+  flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -46,7 +46,10 @@ body {
 }
 
 /* 📌 گروه هر فیلد */
-.form-group { display: flex; flex-direction: column; }
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
 
 /* 🏷️ لیبل‌ها */
 .doctor-form label {
@@ -70,15 +73,25 @@ body {
   text-align: right;
 }
 
-::placeholder { color: #aaa; font-size: 13px; text-align: right; }
+::placeholder {
+  color: #aaa;
+  font-size: 13px;
+  text-align: right;
+}
 
 input[type="number"],
-input[type="tel"] { direction: ltr; text-align: left; }
+input[type="tel"] {
+  direction: ltr;
+  text-align: left;
+}
 
 /* 🔎 فوکوس و hover */
 .doctor-form input:hover,
 .doctor-form textarea:hover,
-.doctor-form select:hover { border-color: #bbb; background: #fdfdfd; }
+.doctor-form select:hover {
+  border-color: #bbb;
+  background: #fdfdfd;
+}
 
 .doctor-form input:focus,
 .doctor-form textarea:focus,
@@ -90,7 +103,10 @@ input[type="tel"] { direction: ltr; text-align: left; }
 }
 
 /* 📄 تکست‌اریا */
-.doctor-form textarea { min-height: 100px; resize: vertical; }
+.doctor-form textarea {
+  min-height: 100px;
+  resize: vertical;
+}
 
 /* 🎯 دکمه ثبت */
 .doctor-form button {
@@ -129,7 +145,14 @@ input[type="tel"] { direction: ltr; text-align: left; }
   font-weight: bold;
   font-size: 15px;
   color: #555;
+  transition: all 0.3s ease;
 }
+
+/* 🎨 رنگ‌بندی وضعیت‌ها */
+.status.success { color: #4caf50; }
+.status.warning { color: #ff9800; }
+.status.error   { color: #f44336; }
+.status.loading { color: #2196f3; }
 
 /* ✨ انیمیشن ورود فرم */
 @keyframes fadeIn {
@@ -139,10 +162,36 @@ input[type="tel"] { direction: ltr; text-align: left; }
 
 /* 📱 ریسپانسیو موبایل */
 @media (max-width: 600px) {
-  .doctor-form { padding: 20px; border-radius: 12px; gap: 20px; }
+  .doctor-form {
+    padding: 20px;
+    border-radius: 12px;
+    gap: 20px;
+  }
   .doctor-form input,
   .doctor-form select,
-  .doctor-form textarea { font-size: 15px; }
-  .doctor-form button { width: 100%; }
-  .container { padding: 10px; }
+  .doctor-form textarea {
+    font-size: 15px;
+  }
+  .doctor-form button {
+    width: 100%;
+  }
+  .container {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .doctor-form {
+    padding: 16px;
+    gap: 14px;
+  }
+  .doctor-form label {
+    font-size: 13px;
+  }
+  .doctor-form input,
+  .doctor-form select,
+  .doctor-form textarea {
+    font-size: 14px;
+    padding: 10px;
+  }
 }
